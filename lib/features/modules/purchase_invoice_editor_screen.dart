@@ -698,6 +698,7 @@ class _PurchaseLineEditor
     return Column(
       children: [
         DropdownButtonFormField<int>(
+          isExpanded: true,
           initialValue: line.productId,
           decoration:
               const InputDecoration(
@@ -862,12 +863,16 @@ class _PurchaseSectionCard
                     AppColors.emeraldDark,
               ),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight:
-                      FontWeight.w900,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight:
+                        FontWeight.w900,
+                  ),
                 ),
               ),
             ],
