@@ -8,6 +8,7 @@ import 'package:diftiri/features/modules/inventory_screen.dart';
 import 'package:diftiri/features/modules/parties_screen.dart';
 import 'package:diftiri/features/modules/purchase_screen.dart';
 import 'package:diftiri/features/modules/reports_screen.dart';
+import 'package:diftiri/features/modules/restaurant_tables_screen.dart';
 import 'package:diftiri/features/modules/sales_screen.dart';
 import 'package:diftiri/features/modules/sales_history_screen.dart';
 import 'package:diftiri/features/modules/purchase_history_screen.dart';
@@ -330,6 +331,64 @@ void main() {
 
       expect(tester.takeException(), isNull);
       await disposeScreen(tester);
+    },
+  );
+
+
+  testWidgets(
+    'restaurant tables screen is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const RestaurantTablesScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key('restaurant-tables-grid'),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'restaurant sale controls fit 360x800 phone',
+    (tester) async {
+      await AppDatabase.instance
+          .saveBusinessSettings(
+        businessName: 'منشأتي',
+        activityType: 'restaurant',
+        currency: 'YER',
+      );
+
+      await pumpPhone(
+        tester,
+        const SalesScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key('restaurant-order-controls'),
+        ),
+      );
+
+      expect(find.text('سفري'), findsOneWidget);
+      expect(find.text('محلي'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await disposeScreen(tester);
+
+      await AppDatabase.instance
+          .saveBusinessSettings(
+        businessName: 'منشأتي',
+        activityType: 'grocery',
+        currency: 'YER',
+      );
     },
   );
 
