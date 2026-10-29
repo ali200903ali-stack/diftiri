@@ -153,7 +153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               _BrandHeader(
                                 compact: !desktop,
                                 availableWidth:
-                                    math.max(220, width - horizontalPadding * 2),
+                                    math.max(220.0, width - horizontalPadding * 2),
                               ),
                               const SizedBox(height: 8),
                               Center(
@@ -297,8 +297,8 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxWidth = compact
-        ? math.min(availableWidth * .82, 340)
-        : math.min(availableWidth, 430);
+        ? math.min(availableWidth * .82, 340.0)
+        : math.min(availableWidth, 430.0);
 
     return Center(
       child: SizedBox(
@@ -520,8 +520,8 @@ class _ModuleCard extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final iconSize = math.min(
-                      46,
-                      math.max(34, constraints.maxWidth * .42),
+                      46.0,
+                      math.max(34.0, constraints.maxWidth * .42),
                     );
                     return Icon(
                       module.icon,
