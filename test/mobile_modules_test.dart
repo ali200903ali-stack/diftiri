@@ -5,11 +5,15 @@ import 'package:diftiri/features/modules/banks_screen.dart';
 import 'package:diftiri/features/modules/cash_screen.dart';
 import 'package:diftiri/features/modules/expenses_screen.dart';
 import 'package:diftiri/features/modules/inventory_screen.dart';
+import 'package:diftiri/features/modules/invoice_editor_screen.dart';
+import 'package:diftiri/features/modules/manual_journal_screen.dart';
 import 'package:diftiri/features/modules/parties_screen.dart';
 import 'package:diftiri/features/modules/purchase_screen.dart';
 import 'package:diftiri/features/modules/reports_screen.dart';
 import 'package:diftiri/features/modules/restaurant_tables_screen.dart';
 import 'package:diftiri/features/modules/sales_screen.dart';
+import 'package:diftiri/features/modules/sales_invoices_screen.dart';
+import 'package:diftiri/features/modules/sales_return_screen.dart';
 import 'package:diftiri/features/modules/sales_history_screen.dart';
 import 'package:diftiri/features/modules/purchase_history_screen.dart';
 import 'package:diftiri/features/modules/settings_screen.dart';
@@ -136,7 +140,7 @@ void main() {
       );
 
       expect(
-        find.text('المخزون والمنتجات'),
+        find.text('المخزون'),
         findsOneWidget,
       );
 
@@ -197,7 +201,7 @@ void main() {
 
       await pumpUntil(
         tester,
-        find.text('لا يوجد العملاء حتى الآن'),
+        find.text('لا يوجد العملاء مطابقون'),
       );
 
       expect(
@@ -220,7 +224,7 @@ void main() {
       await pumpUntil(
         tester,
         find.text(
-          'لا توجد قيود بعد. سجّل بيعاً أو شراءً أو مصروفاً.',
+          'لا توجد قيود بعد. ابدأ بقيد بسيط أو سجّل عملية بيع أو شراء.',
         ),
       );
 
@@ -297,6 +301,112 @@ void main() {
     },
   );
 
+
+
+  testWidgets(
+    'sales invoices center is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const SalesInvoicesScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('فواتير المبيعات'),
+      );
+
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'new invoice editor is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const InvoiceEditorScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key('invoice-editor-scroll'),
+        ),
+      );
+
+      expect(
+        find.text('حفظ وترحيل'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'manual journal editor is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const ManualJournalScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key('manual-journal-scroll'),
+        ),
+      );
+
+      expect(
+        find.text('حفظ القيد'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'sales return screen is stable on phone',
+    (tester) async {
+      final products =
+          await AppDatabase.instance.getProducts();
+
+      if (products.isNotEmpty) {
+        await AppDatabase.instance.recordSale(
+          {products.first.id: 1},
+        );
+      }
+
+      final sales =
+          await AppDatabase.instance.getSalesHistory();
+      expect(sales, isNotEmpty);
+
+      await pumpPhone(
+        tester,
+        SalesReturnScreen(
+          saleId: sales.first.id,
+        ),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key('sales-return-list'),
+        ),
+      );
+
+      expect(
+        find.text('حفظ المرتجع'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
 
   testWidgets(
     'sales history is stable on phone',
@@ -388,7 +498,7 @@ void main() {
 
       await pumpUntil(
         tester,
-        find.text('مبيعات اليوم'),
+        find.text('إجمالي المبيعات'),
       );
 
       expect(
