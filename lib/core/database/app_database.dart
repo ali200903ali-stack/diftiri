@@ -135,6 +135,29 @@ class DashboardStats {
 
 
 
+
+class RestaurantTableRecord {
+  const RestaurantTableRecord({
+    required this.id,
+    required this.name,
+    required this.active,
+  });
+
+  final int id;
+  final String name;
+  final bool active;
+
+  factory RestaurantTableRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return RestaurantTableRecord(
+      id: map['id'] as int,
+      name: map['name'] as String,
+      active: (map['active'] as int) == 1,
+    );
+  }
+}
+
 class SaleSummaryRecord {
   const SaleSummaryRecord({
     required this.id,
@@ -142,6 +165,8 @@ class SaleSummaryRecord {
     required this.total,
     required this.paymentMethod,
     required this.itemCount,
+    required this.orderType,
+    required this.tableName,
   });
 
   final int id;
@@ -149,6 +174,8 @@ class SaleSummaryRecord {
   final double total;
   final String paymentMethod;
   final double itemCount;
+  final String orderType;
+  final String tableName;
 
   factory SaleSummaryRecord.fromMap(
     Map<String, Object?> map,
@@ -162,6 +189,10 @@ class SaleSummaryRecord {
           (map['payment_method'] as String?) ?? 'cash',
       itemCount:
           (map['item_count'] as num).toDouble(),
+      orderType:
+          (map['order_type'] as String?) ?? 'retail',
+      tableName:
+          (map['table_name'] as String?) ?? '',
     );
   }
 }
@@ -268,7 +299,7 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 2,
+      version: 3,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -280,6 +311,10 @@ class AppDatabase {
         if (oldVersion < 2) {
           await _createVersion2Tables(db);
           await _seedVersion2(db);
+        }
+        if (oldVersion < 3) {
+          await _createVersion3Tables(db);
+          await _seedVersion3(db);
         }
       },
     );
@@ -421,6 +456,52 @@ class AppDatabase {
     ''');
   }
 
+  Future<void> _createVersion3Tables(
+    Database db,
+  ) async {
+    final salesColumns = await db.rawQuery(
+      'PRAGMA table_info(sales)',
+    );
+    final columnNames = salesColumns
+        .map((row) => row['name'] as String)
+        .toSet();
+
+    if (!columnNames.contains('order_type')) {
+      await db.execute(
+        "ALTER TABLE sales ADD COLUMN "
+        "order_type TEXT NOT NULL DEFAULT 'retail'",
+      );
+    }
+
+    if (!columnNames.contains('table_name')) {
+      await db.execute(
+        "ALTER TABLE sales ADD COLUMN "
+        "table_name TEXT NOT NULL DEFAULT ''",
+      );
+    }
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS restaurant_tables (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+  }
+
+  Future<void> _seedVersion3(Database db) async {
+    for (var i = 1; i <= 4; i++) {
+      await db.insert(
+        'restaurant_tables',
+        {
+          'name': 'طاولة ' + i.toString(),
+          'active': 1,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
   Future<void> _seedVersion2(Database db) async {
     await db.insert(
       'app_settings',
@@ -515,6 +596,8 @@ class AppDatabase {
     await batch.commit(noResult: true);
     await _createVersion2Tables(db);
     await _seedVersion2(db);
+    await _createVersion3Tables(db);
+    await _seedVersion3(db);
   }
 
   Future<List<ProductRecord>> getProducts({String query = ''}) async {
@@ -553,6 +636,8 @@ class AppDatabase {
   Future<void> recordSale(
     Map<int, int> quantities, {
     String paymentMethod = 'cash',
+    String orderType = 'retail',
+    String tableName = '',
   }) async {
     if (quantities.isEmpty) return;
 
@@ -587,6 +672,8 @@ class AppDatabase {
         'created_at': now,
         'total': total,
         'payment_method': paymentMethod,
+        'order_type': orderType,
+        'table_name': tableName,
       });
 
       for (final item in quantities.entries) {
@@ -824,6 +911,50 @@ class AppDatabase {
 
 
 
+
+  Future<List<RestaurantTableRecord>>
+      getRestaurantTables() async {
+    final rows = await db.query(
+      'restaurant_tables',
+      where: 'active = 1',
+      orderBy: 'id ASC',
+    );
+
+    return rows
+        .map(RestaurantTableRecord.fromMap)
+        .toList();
+  }
+
+  Future<int> addRestaurantTable(
+    String name,
+  ) {
+    final normalized = name.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError('اسم الطاولة مطلوب');
+    }
+
+    return db.insert(
+      'restaurant_tables',
+      {
+        'name': normalized,
+        'active': 1,
+      },
+      conflictAlgorithm:
+          ConflictAlgorithm.abort,
+    );
+  }
+
+  Future<void> deactivateRestaurantTable(
+    int id,
+  ) async {
+    await db.update(
+      'restaurant_tables',
+      {'active': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<List<SaleSummaryRecord>>
       getSalesHistory() async {
     final rows = await db.rawQuery('''
@@ -832,6 +963,8 @@ class AppDatabase {
         s.created_at,
         s.total,
         s.payment_method,
+        s.order_type,
+        s.table_name,
         COALESCE(SUM(i.qty), 0) AS item_count
       FROM sales s
       LEFT JOIN sale_items i
@@ -840,7 +973,9 @@ class AppDatabase {
         s.id,
         s.created_at,
         s.total,
-        s.payment_method
+        s.payment_method,
+        s.order_type,
+        s.table_name
       ORDER BY s.id DESC
       LIMIT 250
     ''');
