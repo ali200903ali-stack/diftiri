@@ -20,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   late Future<DashboardStats> statsFuture;
   String query = '';
+  String activityType = 'grocery';
 
   static const modules = <_Module>[
     _Module('المبيعات', Icons.receipt_long_rounded, AppColors.navy),
@@ -64,6 +65,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     statsFuture = AppDatabase.instance.getDashboardStats();
+    _loadActivityType();
+  }
+
+  Future<void> _loadActivityType() async {
+    final settings =
+        await AppDatabase.instance.getBusinessSettings();
+    if (!mounted) return;
+    setState(() {
+      activityType = settings.activityType;
+    });
   }
 
   @override
@@ -111,11 +122,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       hasActiveSubscription: false,
     );
 
+    final allModules = <_Module>[
+      ...modules,
+      if (activityType == 'restaurant' ||
+          activityType == 'mixed')
+        const _Module(
+          'الطاولات',
+          Icons.table_restaurant_rounded,
+          Color(0xFFE8F8F4),
+          darkIcon: AppColors.emeraldDark,
+        ),
+    ];
+
     final normalizedQuery = query.trim();
     final visibleModules = normalizedQuery.isEmpty
-        ? modules
-        : modules
-            .where((module) => module.title.contains(normalizedQuery))
+        ? allModules
+        : allModules
+            .where(
+              (module) =>
+                  module.title.contains(normalizedQuery),
+            )
             .toList();
 
     return Scaffold(
