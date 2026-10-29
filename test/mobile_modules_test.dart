@@ -23,11 +23,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  late int returnSaleId;
+
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await AppDatabase.instance.initialize(
       inMemory: true,
     );
+
+    final products =
+        await AppDatabase.instance.getProducts();
+    if (products.isEmpty) {
+      throw StateError(
+        'لا توجد أصناف لتجهيز فاتورة اختبار المرتجع',
+      );
+    }
+
+    await AppDatabase.instance.recordSale(
+      {products.first.id: 1},
+    );
+
+    final sales =
+        await AppDatabase.instance.getSalesHistory();
+    if (sales.isEmpty) {
+      throw StateError(
+        'تعذر تجهيز فاتورة اختبار المرتجع',
+      );
+    }
+
+    returnSaleId = sales.first.id;
   });
 
   Future<void> pumpPhone(
@@ -270,8 +294,8 @@ void main() {
 
       await pumpUntil(
         tester,
-        find.text(
-          'لا توجد قيود بعد. ابدأ بقيد بسيط أو سجّل عملية بيع أو شراء.',
+        find.byKey(
+          const Key('journal-lines-list'),
         ),
       );
 
@@ -419,23 +443,10 @@ void main() {
   testWidgets(
     'sales return screen is stable on phone',
     (tester) async {
-      final products =
-          await AppDatabase.instance.getProducts();
-
-      if (products.isNotEmpty) {
-        await AppDatabase.instance.recordSale(
-          {products.first.id: 1},
-        );
-      }
-
-      final sales =
-          await AppDatabase.instance.getSalesHistory();
-      expect(sales, isNotEmpty);
-
       await pumpPhone(
         tester,
         SalesReturnScreen(
-          saleId: sales.first.id,
+          saleId: returnSaleId,
         ),
       );
 
