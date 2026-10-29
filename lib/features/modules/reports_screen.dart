@@ -20,7 +20,6 @@ class ReportsScreen extends StatelessWidget {
           }
 
           final stats = snapshot.data!;
-
           final cards = <_ReportCardData>[
             _ReportCardData(
               'مبيعات اليوم',
@@ -44,81 +43,123 @@ class ReportsScreen extends StatelessWidget {
             ),
           ];
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: cards
-                    .map(
-                      (item) => SizedBox(
-                        width: 250,
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: AppColors.border,
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final phone = width < 600;
+              final horizontalPadding = phone ? 16.0 : 24.0;
+              final gap = 12.0;
+              final cardWidth = phone
+                  ? (width - horizontalPadding * 2 - gap) / 2
+                  : 250.0;
+
+              return ListView(
+                padding: EdgeInsets.all(horizontalPadding),
+                children: [
+                  Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: cards
+                        .map(
+                          (item) => SizedBox(
+                            width: cardWidth,
+                            child: _ReportCard(
+                              data: item,
+                              compact: phone,
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                item.icon,
-                                color: AppColors.emeraldDark,
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                item.label,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Text(
-                                item.value.toStringAsFixed(0) + ' ر.ي',
-                                style: const TextStyle(
-                                  fontSize: 27,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.navy,
-                                ),
-                              ),
-                            ],
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: EdgeInsets.all(phone ? 15 : 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF4E6),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'أصناف منخفضة المخزون: ' +
+                                stats.lowStockCount.toString(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                    .toList(),
-              ),
-              const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF4E6),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.orange,
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'أصناف منخفضة المخزون: ' +
-                          stats.lowStockCount.toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           );
         },
+      ),
+    );
+  }
+}
+
+class _ReportCard extends StatelessWidget {
+  const _ReportCard({
+    required this.data,
+    required this.compact,
+  });
+
+  final _ReportCardData data;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        minHeight: compact ? 130 : 150,
+      ),
+      padding: EdgeInsets.all(compact ? 15 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            data.icon,
+            color: AppColors.emeraldDark,
+            size: compact ? 26 : 30,
+          ),
+          const Spacer(),
+          Text(
+            data.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: compact ? 13 : 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              data.value.toStringAsFixed(0) + ' ر.ي',
+              style: TextStyle(
+                fontSize: compact ? 21 : 27,
+                fontWeight: FontWeight.w900,
+                color: AppColors.navy,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
