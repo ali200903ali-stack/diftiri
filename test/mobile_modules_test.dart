@@ -48,9 +48,12 @@ void main() {
       ),
     );
 
-    await tester.pump(
-      const Duration(milliseconds: 100),
-    );
+    await tester.runAsync(() async {
+      await Future<void>.delayed(
+        const Duration(milliseconds: 180),
+      );
+    });
+    await tester.pump();
   }
 
   Future<void> pumpUntil(
@@ -58,9 +61,12 @@ void main() {
     Finder finder,
   ) async {
     for (var i = 0; i < 40; i++) {
-      await tester.pump(
-        const Duration(milliseconds: 100),
-      );
+      await tester.runAsync(() async {
+        await Future<void>.delayed(
+          const Duration(milliseconds: 60),
+        );
+      });
+      await tester.pump();
 
       if (finder.evaluate().isNotEmpty) {
         expect(tester.takeException(), isNull);
@@ -77,12 +83,16 @@ void main() {
     WidgetTester tester,
   ) async {
     FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(
+        const Duration(milliseconds: 80),
+      );
+    });
     await tester.pumpWidget(
       const SizedBox.shrink(),
     );
-    await tester.pump(
-      const Duration(milliseconds: 250),
-    );
+    await tester.pump();
   }
 
   testWidgets(
