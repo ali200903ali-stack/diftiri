@@ -5,64 +5,50 @@ import 'simple_module_screen.dart';
 
 abstract final class ModuleRouter {
   static void open(BuildContext context, String title) {
-    final Widget screen;
-
-    switch (title) {
-      case 'المبيعات':
-        screen = const SalesScreen();
-      case 'المخزون':
-        screen = const InventoryScreen();
-      case 'التقارير':
-        screen = const SimpleModuleScreen(
+    final Widget screen = switch (title) {
+      'المبيعات' => const SalesScreen(),
+      'المخزون' => const InventoryScreen(),
+      'التقارير' => const SimpleModuleScreen(
           title: 'التقارير',
           icon: Icons.bar_chart_rounded,
           message: 'ملخص المبيعات، الأرباح، المصروفات وحركة المخزون.',
-        );
-      case 'المشتريات':
-        screen = const SimpleModuleScreen(
+        ),
+      'المشتريات' => const SimpleModuleScreen(
           title: 'المشتريات',
           icon: Icons.shopping_bag_rounded,
           message: 'فواتير الشراء، الموردون وتحديث أرصدة المخزون.',
-        );
-      case 'العملاء':
-        screen = const SimpleModuleScreen(
+        ),
+      'العملاء' => const SimpleModuleScreen(
           title: 'العملاء',
           icon: Icons.person_rounded,
           message: 'ملفات العملاء، الأرصدة والحركات.',
-        );
-      case 'الموردون':
-        screen = const SimpleModuleScreen(
+        ),
+      'الموردون' => const SimpleModuleScreen(
           title: 'الموردون',
           icon: Icons.local_shipping_rounded,
           message: 'بيانات الموردين وفواتيرهم وأرصدتهم.',
-        );
-      case 'الحسابات':
-      case 'القيود':
-        screen = const SimpleModuleScreen(
+        ),
+      'الحسابات' || 'القيود' => const SimpleModuleScreen(
           title: 'الحسابات والقيود',
           icon: Icons.menu_book_rounded,
           message: 'شجرة الحسابات والقيود اليومية والترحيل.',
-        );
-      case 'الصندوق':
-      case 'البنوك':
-        screen = SimpleModuleScreen(
+        ),
+      'الصندوق' || 'البنوك' => SimpleModuleScreen(
           title: title,
           icon: Icons.account_balance_wallet_rounded,
           message: 'الأرصدة وحركات القبض والصرف.',
-        );
-      case 'المصروفات':
-        screen = const SimpleModuleScreen(
+        ),
+      'المصروفات' => const SimpleModuleScreen(
           title: 'المصروفات',
           icon: Icons.request_quote_rounded,
           message: 'تسجيل وتصنيف المصروفات اليومية.',
-        );
-      default:
-        screen = SimpleModuleScreen(
+        ),
+      _ => SimpleModuleScreen(
           title: title,
           icon: Icons.settings_rounded,
           message: 'إعدادات المنشأة والمستخدمين والطباعة.',
-        );
-    }
+        ),
+    };
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => screen),
