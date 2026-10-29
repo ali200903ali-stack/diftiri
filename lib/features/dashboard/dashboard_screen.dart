@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/subscription/subscription_gate.dart';
+import '../modules/module_router.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -340,11 +341,7 @@ class _ModuleCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(24),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('سيتم فتح وحدة ' + module.title)),
-        );
-      },
+      onTap: () => ModuleRouter.open(context, module.title),
       child: Column(
         children: [
           Expanded(
