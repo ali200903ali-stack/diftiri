@@ -9,6 +9,8 @@ import 'package:diftiri/features/modules/invoice_editor_screen.dart';
 import 'package:diftiri/features/modules/manual_journal_screen.dart';
 import 'package:diftiri/features/modules/parties_screen.dart';
 import 'package:diftiri/features/modules/purchase_screen.dart';
+import 'package:diftiri/features/modules/purchase_invoices_screen.dart';
+import 'package:diftiri/features/modules/purchase_invoice_editor_screen.dart';
 import 'package:diftiri/features/modules/reports_screen.dart';
 import 'package:diftiri/features/modules/restaurant_tables_screen.dart';
 import 'package:diftiri/features/modules/sales_screen.dart';
@@ -144,6 +146,51 @@ void main() {
         findsOneWidget,
       );
 
+      await disposeScreen(tester);
+    },
+  );
+
+
+  testWidgets(
+    'purchase invoices center is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const PurchaseInvoicesScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('فواتير المشتريات'),
+      );
+
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'purchase invoice editor is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const PurchaseInvoiceEditorScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(
+          const Key(
+            'purchase-invoice-editor-scroll',
+          ),
+        ),
+      );
+
+      expect(
+        find.text('حفظ وترحيل'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
       await disposeScreen(tester);
     },
   );
