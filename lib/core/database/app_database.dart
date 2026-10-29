@@ -410,7 +410,9 @@ class SaleItemRecord {
   final double returnedQuantity;
 
   double get returnableQuantity =>
-      (quantity - returnedQuantity).clamp(0, quantity);
+      (quantity - returnedQuantity)
+          .clamp(0.0, quantity)
+          .toDouble();
 
   factory SaleItemRecord.fromMap(
     Map<String, Object?> map,
@@ -1841,7 +1843,9 @@ class AppDatabase {
       }
 
       final taxableBase =
-          (subtotal - discount).clamp(0, subtotal);
+          (subtotal - discount)
+              .clamp(0.0, subtotal)
+              .toDouble();
       final taxAmount = taxableBase * taxRate / 100;
       final total = taxableBase + taxAmount;
       final posted = status == 'draft' ? 0 : 1;
@@ -2092,8 +2096,9 @@ class AppDatabase {
             'qty': item['qty'],
             'unit_price': item['unit_price'],
             'unit_cost': item['unit_cost'],
-            'total': (item['qty'] as double) *
-                (item['unit_price'] as double),
+            'total':
+                (item['qty'] as num).toDouble() *
+                (item['unit_price'] as num).toDouble(),
           },
         );
 
