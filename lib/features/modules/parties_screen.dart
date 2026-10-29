@@ -242,6 +242,201 @@ class _PartiesScreenState extends State<PartiesScreen> {
     }
   }
 
+
+  Future<void> _openPayment(
+    PartyRecord party,
+  ) async {
+    final amount = TextEditingController(
+      text: party.balance.toStringAsFixed(0),
+    );
+    String paymentMethod = 'cash';
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(
+                  context,
+                ).bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  18,
+                ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius:
+                            BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      isCustomer
+                          ? 'تحصيل من العميل'
+                          : 'سداد للمورد',
+                      style: const TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      party.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'الرصيد المستحق: ' +
+                          party.balance.toStringAsFixed(
+                            0,
+                          ) +
+                          ' ر.ي',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: amount,
+                      keyboardType:
+                          const TextInputType
+                              .numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration:
+                          const InputDecoration(
+                        labelText: 'المبلغ',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      initialValue: paymentMethod,
+                      decoration:
+                          const InputDecoration(
+                        labelText: 'طريقة الدفع',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'cash',
+                          child: Text('نقدي'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'bank',
+                          child: Text(
+                            'تحويل بنكي',
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setSheetState(() {
+                          paymentMethod = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          try {
+                            await AppDatabase.instance
+                                .recordPartyPayment(
+                              partyId: party.id,
+                              type: widget.type,
+                              amount:
+                                  double.tryParse(
+                                        amount.text,
+                                      ) ??
+                                      0,
+                              paymentMethod:
+                                  paymentMethod,
+                            );
+
+                            if (sheetContext.mounted) {
+                              Navigator.pop(
+                                sheetContext,
+                                true,
+                              );
+                            }
+                          } catch (error) {
+                            if (!sheetContext
+                                .mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(
+                              sheetContext,
+                            ).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  error.toString(),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: Icon(
+                          isCustomer
+                              ? Icons.payments_rounded
+                              : Icons
+                                  .outbox_rounded,
+                        ),
+                        label: Padding(
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
+                            vertical: 12,
+                          ),
+                          child: Text(
+                            isCustomer
+                                ? 'تسجيل التحصيل'
+                                : 'تسجيل السداد',
+                            style:
+                                const TextStyle(
+                              fontWeight:
+                                  FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (saved == true && mounted) {
+      setState(_reload);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final addLabel =
@@ -440,6 +635,13 @@ class _PartiesScreenState extends State<PartiesScreen> {
                                 _openEditor(
                               party: party,
                             ),
+                            onPayment:
+                                party.balance > 0
+                                    ? () =>
+                                        _openPayment(
+                                          party,
+                                        )
+                                    : null,
                           );
                         },
                       ),
@@ -581,10 +783,12 @@ class _PartyCard extends StatelessWidget {
   const _PartyCard({
     required this.party,
     required this.onTap,
+    this.onPayment,
   });
 
   final PartyRecord party;
   final VoidCallback onTap;
+  final VoidCallback? onPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -711,6 +915,15 @@ class _PartyCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onPayment != null)
+                IconButton(
+                  tooltip: 'تسجيل دفعة',
+                  onPressed: onPayment,
+                  icon: const Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.emeraldDark,
+                  ),
+                ),
               const Icon(
                 Icons.chevron_left_rounded,
                 color: AppColors.muted,
