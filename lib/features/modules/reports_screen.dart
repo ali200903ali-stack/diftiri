@@ -346,7 +346,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 118),
+      height: 132,
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: tint,
@@ -361,7 +361,7 @@ class _SummaryCard extends StatelessWidget {
             color: AppColors.emeraldDark,
             size: 25,
           ),
-          const Spacer(),
+          const SizedBox(height: 10),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerRight,
