@@ -2,23 +2,51 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'manual_journal_screen.dart';
 
-class AccountingScreen extends StatelessWidget {
+class AccountingScreen extends StatefulWidget {
   const AccountingScreen({super.key});
+
+  @override
+  State<AccountingScreen> createState() => _AccountingScreenState();
+}
+
+class _AccountingScreenState extends State<AccountingScreen> {
+  late Future<List<JournalLineRecord>> future;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    future = AppDatabase.instance.getJournalLines();
+  }
+
+  Future<void> _newJournal() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const ManualJournalScreen(),
+      ),
+    );
+    if (changed == true && mounted) setState(_reload);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الحسابات والقيود'),
+      appBar: AppBar(title: const Text('الحسابات والقيود')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _newJournal,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('قيد جديد'),
       ),
       body: FutureBuilder<List<JournalLineRecord>>(
-        future: AppDatabase.instance.getJournalLines(),
+        future: future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           final rows = snapshot.data!;
@@ -27,7 +55,7 @@ class AccountingScreen extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  'لا توجد قيود بعد. سجّل بيعاً أو شراءً أو مصروفاً.',
+                  'لا توجد قيود بعد. ابدأ بقيد بسيط أو سجّل عملية بيع أو شراء.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -35,14 +63,12 @@ class AccountingScreen extends StatelessWidget {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(14),
+            key: const Key('journal-lines-list'),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 90),
             itemCount: rows.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: 8),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              return _JournalLineCard(
-                line: rows[index],
-              );
+              return _JournalLineCard(line: rows[index]);
             },
           );
         },
@@ -91,13 +117,10 @@ class _JournalLineCard extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  line.accountCode +
-                      ' - ' +
-                      line.accountName,
+                  line.accountCode + ' - ' + line.accountName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -106,9 +129,7 @@ class _JournalLineCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  line.reference +
-                      ' • ' +
-                      line.memo,
+                  line.reference + ' • ' + line.memo,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -133,14 +154,11 @@ class _JournalLineCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  amount.toStringAsFixed(0),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
-                  ),
+              Text(
+                amount.toStringAsFixed(0),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
                 ),
               ),
             ],
