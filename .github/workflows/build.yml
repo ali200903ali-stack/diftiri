@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: diftiri-build-v3-${{ github.ref }}
+  group: diftiri-build-v4-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
