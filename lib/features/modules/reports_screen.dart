@@ -129,6 +129,7 @@ class _ReportCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
@@ -136,7 +137,7 @@ class _ReportCard extends StatelessWidget {
             color: AppColors.emeraldDark,
             size: compact ? 26 : 30,
           ),
-          const Spacer(),
+          SizedBox(height: compact ? 18 : 24),
           Text(
             data.label,
             maxLines: 1,

@@ -138,6 +138,7 @@ class _SettingsScreenState
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: activityType,
                         decoration:
                             const InputDecoration(
@@ -168,6 +169,7 @@ class _SettingsScreenState
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: currency,
                         decoration:
                             const InputDecoration(

@@ -135,6 +135,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   }
 
                   return ListView.separated(
+                    key: const Key('inventory-list'),
                     itemCount: products.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {

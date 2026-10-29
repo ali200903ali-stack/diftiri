@@ -129,7 +129,7 @@ void main() {
 
       await pumpUntil(
         tester,
-        find.text('مياه معدنية'),
+        find.byKey(const Key('inventory-list')),
       );
 
       expect(
