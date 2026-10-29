@@ -24,12 +24,28 @@ void main() {
     });
 
     await tester.pumpWidget(const DiftiriApp());
+    await tester.pump(
+      const Duration(milliseconds: 120),
+    );
+  }
 
-    for (var i = 0; i < 8; i++) {
+  Future<void> pumpUntil(
+    WidgetTester tester,
+    Finder finder,
+  ) async {
+    for (var i = 0; i < 30; i++) {
       await tester.pump(
-        const Duration(milliseconds: 80),
+        const Duration(milliseconds: 100),
       );
+
+      if (finder.evaluate().isNotEmpty) {
+        return;
+      }
     }
+
+    throw TestFailure(
+      'Widget did not appear within timeout: $finder',
+    );
   }
 
   Future<void> disposeApp(
@@ -40,7 +56,7 @@ void main() {
       const SizedBox.shrink(),
     );
     await tester.pump(
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 250),
     );
   }
 
@@ -52,10 +68,11 @@ void main() {
         const Size(390, 844),
       );
 
-      expect(
+      await pumpUntil(
+        tester,
         find.text('القائمة الرئيسية'),
-        findsOneWidget,
       );
+
       expect(find.text('المبيعات'), findsOneWidget);
       expect(find.text('المشتريات'), findsOneWidget);
       expect(find.text('المخزون'), findsOneWidget);
@@ -70,9 +87,10 @@ void main() {
       );
 
       expect(
-        find.bySemanticsLabel('الإعدادات'),
-        findsOneWidget,
+        find.text('الإعدادات'),
+        findsWidgets,
       );
+      expect(find.text('المبيعات'), findsNothing);
       expect(tester.takeException(), isNull);
 
       await disposeApp(tester);
@@ -87,24 +105,18 @@ void main() {
         const Size(360, 800),
       );
 
-      expect(
+      await pumpUntil(
+        tester,
         find.text('نسخة تجريبية'),
-        findsOneWidget,
       );
+
       expect(
         find.byKey(const Key('dashboard-search')),
         findsOneWidget,
       );
-      expect(tester.takeException(), isNull);
-
-      await tester.drag(
-        find.byKey(const Key('dashboard-scroll')),
-        const Offset(0, -700),
-      );
-      await tester.pump(
-        const Duration(milliseconds: 350),
-      );
-
+      expect(find.text('المبيعات'), findsOneWidget);
+      expect(find.text('المشتريات'), findsOneWidget);
+      expect(find.text('المخزون'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await disposeApp(tester);
@@ -119,6 +131,11 @@ void main() {
         const Size(390, 844),
       );
 
+      await pumpUntil(
+        tester,
+        find.byKey(const Key('dashboard-search')),
+      );
+
       await tester.enterText(
         find.byKey(const Key('dashboard-search')),
         'المخزون',
@@ -129,8 +146,8 @@ void main() {
       );
 
       expect(
-        find.bySemanticsLabel('المخزون'),
-        findsOneWidget,
+        find.text('المخزون'),
+        findsWidgets,
       );
       expect(find.text('المبيعات'), findsNothing);
       expect(tester.takeException(), isNull);

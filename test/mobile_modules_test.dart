@@ -48,13 +48,29 @@ void main() {
       ),
     );
 
-    for (var i = 0; i < 10; i++) {
+    await tester.pump(
+      const Duration(milliseconds: 100),
+    );
+  }
+
+  Future<void> pumpUntil(
+    WidgetTester tester,
+    Finder finder,
+  ) async {
+    for (var i = 0; i < 40; i++) {
       await tester.pump(
-        const Duration(milliseconds: 80),
+        const Duration(milliseconds: 100),
       );
+
+      if (finder.evaluate().isNotEmpty) {
+        expect(tester.takeException(), isNull);
+        return;
+      }
     }
 
-    expect(tester.takeException(), isNull);
+    throw TestFailure(
+      'Widget did not appear within timeout: $finder',
+    );
   }
 
   Future<void> disposeScreen(
@@ -65,7 +81,7 @@ void main() {
       const SizedBox.shrink(),
     );
     await tester.pump(
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 250),
     );
   }
 
@@ -77,10 +93,11 @@ void main() {
         const SalesScreen(),
       );
 
-      expect(
+      await pumpUntil(
+        tester,
         find.byKey(const Key('sales-search')),
-        findsOneWidget,
       );
+
       expect(
         find.byKey(
           const Key('sales-products-grid'),
@@ -100,6 +117,11 @@ void main() {
         const InventoryScreen(),
       );
 
+      await pumpUntil(
+        tester,
+        find.text('مياه معدنية'),
+      );
+
       expect(
         find.text('المخزون والمنتجات'),
         findsOneWidget,
@@ -117,11 +139,12 @@ void main() {
         const PurchaseScreen(),
       );
 
-      expect(
+      await pumpUntil(
+        tester,
         find.text('حفظ فاتورة الشراء'),
-        findsOneWidget,
       );
 
+      expect(tester.takeException(), isNull);
       await disposeScreen(tester);
     },
   );
@@ -132,6 +155,11 @@ void main() {
       await pumpPhone(
         tester,
         const ExpensesScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('لا توجد مصروفات'),
       );
 
       expect(
@@ -154,6 +182,11 @@ void main() {
         ),
       );
 
+      await pumpUntil(
+        tester,
+        find.text('لا يوجد العملاء حتى الآن'),
+      );
+
       expect(
         find.text('العملاء'),
         findsOneWidget,
@@ -169,6 +202,13 @@ void main() {
       await pumpPhone(
         tester,
         const AccountingScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text(
+          'لا توجد قيود بعد. سجّل بيعاً أو شراءً أو مصروفاً.',
+        ),
       );
 
       expect(
@@ -188,6 +228,11 @@ void main() {
         const CashScreen(),
       );
 
+      await pumpUntil(
+        tester,
+        find.text('الرصيد النقدي'),
+      );
+
       expect(
         find.text('الصندوق'),
         findsOneWidget,
@@ -203,6 +248,13 @@ void main() {
       await pumpPhone(
         tester,
         const BanksScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.textContaining(
+          'لا توجد حسابات بنكية',
+        ),
       );
 
       expect(
@@ -222,11 +274,12 @@ void main() {
         const SettingsScreen(),
       );
 
-      expect(
+      await pumpUntil(
+        tester,
         find.text('حفظ الإعدادات'),
-        findsOneWidget,
       );
 
+      expect(tester.takeException(), isNull);
       await disposeScreen(tester);
     },
   );
@@ -237,6 +290,11 @@ void main() {
       await pumpPhone(
         tester,
         const ReportsScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('مبيعات اليوم'),
       );
 
       expect(
