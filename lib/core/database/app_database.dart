@@ -347,7 +347,9 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at TEXT NOT NULL,
         total REAL NOT NULL,
-        payment_method TEXT NOT NULL
+        payment_method TEXT NOT NULL,
+        order_type TEXT NOT NULL DEFAULT 'retail',
+        table_name TEXT NOT NULL DEFAULT ''
       )
     ''');
 
@@ -459,26 +461,15 @@ class AppDatabase {
   Future<void> _createVersion3Tables(
     Database db,
   ) async {
-    final salesColumns = await db.rawQuery(
-      'PRAGMA table_info(sales)',
+    await db.execute(
+      "ALTER TABLE sales ADD COLUMN "
+      "order_type TEXT NOT NULL DEFAULT 'retail'",
     );
-    final columnNames = salesColumns
-        .map((row) => row['name'] as String)
-        .toSet();
 
-    if (!columnNames.contains('order_type')) {
-      await db.execute(
-        "ALTER TABLE sales ADD COLUMN "
-        "order_type TEXT NOT NULL DEFAULT 'retail'",
-      );
-    }
-
-    if (!columnNames.contains('table_name')) {
-      await db.execute(
-        "ALTER TABLE sales ADD COLUMN "
-        "table_name TEXT NOT NULL DEFAULT ''",
-      );
-    }
+    await db.execute(
+      "ALTER TABLE sales ADD COLUMN "
+      "table_name TEXT NOT NULL DEFAULT ''",
+    );
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS restaurant_tables (
@@ -596,7 +587,13 @@ class AppDatabase {
     await batch.commit(noResult: true);
     await _createVersion2Tables(db);
     await _seedVersion2(db);
-    await _createVersion3Tables(db);
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS restaurant_tables (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
     await _seedVersion3(db);
   }
 
