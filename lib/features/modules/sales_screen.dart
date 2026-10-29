@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
-import 'demo_store.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -11,38 +12,97 @@ class SalesScreen extends StatefulWidget {
 
 class _SalesScreenState extends State<SalesScreen> {
   final Map<int, int> quantities = {};
+  List<ProductRecord> products = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    final result = await AppDatabase.instance.getProducts();
+    if (!mounted) return;
+
+    setState(() {
+      products = result;
+      loading = false;
+    });
+  }
 
   double get total {
     var value = 0.0;
-    quantities.forEach((index, quantity) {
-      value += DemoStore.products[index].price * quantity;
-    });
+    for (final entry in quantities.entries) {
+      final product = products.firstWhere((p) => p.id == entry.key);
+      value += product.salePrice * entry.value;
+    }
     return value;
   }
 
-  void add(int index) {
+  void add(ProductRecord product) {
+    final current = quantities[product.id] ?? 0;
+
+    if (product.trackStock && current >= product.stock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('المخزون غير كافٍ للصنف ' + product.name),
+        ),
+      );
+      return;
+    }
+
     setState(() {
-      quantities[index] = (quantities[index] ?? 0) + 1;
+      quantities[product.id] = current + 1;
     });
   }
 
-  void remove(int index) {
+  void remove(int productId) {
     setState(() {
-      final current = quantities[index] ?? 0;
+      final current = quantities[productId] ?? 0;
       if (current <= 1) {
-        quantities.remove(index);
+        quantities.remove(productId);
       } else {
-        quantities[index] = current - 1;
+        quantities[productId] = current - 1;
       }
     });
   }
 
+  Future<void> _completeSale() async {
+    try {
+      await AppDatabase.instance.recordSale(quantities);
+
+      if (!mounted) return;
+      setState(quantities.clear);
+      await _loadProducts();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تم تسجيل البيع والقيد المحاسبي وتحديث المخزون',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final desktop = width >= 900;
+    if (loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    final products = GridView.builder(
+    final desktop = MediaQuery.sizeOf(context).width >= 900;
+
+    final productsGrid = GridView.builder(
       padding: const EdgeInsets.all(20),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: desktop ? 4 : 2,
@@ -50,11 +110,12 @@ class _SalesScreenState extends State<SalesScreen> {
         mainAxisSpacing: 12,
         childAspectRatio: 1.15,
       ),
-      itemCount: DemoStore.products.length,
+      itemCount: products.length,
       itemBuilder: (context, index) {
-        final item = DemoStore.products[index];
+        final item = products[index];
+
         return InkWell(
-          onTap: () => add(index),
+          onTap: () => add(item),
           borderRadius: BorderRadius.circular(22),
           child: Container(
             padding: const EdgeInsets.all(14),
@@ -79,12 +140,20 @@ class _SalesScreenState extends State<SalesScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 Text(
-                  item.price.toStringAsFixed(0) + ' ر.ي',
+                  item.salePrice.toStringAsFixed(0) + ' ر.ي',
                   style: const TextStyle(
                     color: AppColors.navy,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                if (item.trackStock)
+                  Text(
+                    'متوفر ' + item.stock.toStringAsFixed(0),
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -93,11 +162,17 @@ class _SalesScreenState extends State<SalesScreen> {
     );
 
     final cart = _CartPanel(
+      products: products,
       quantities: quantities,
       total: total,
-      onAdd: add,
+      onAdd: (id) {
+        add(products.firstWhere((p) => p.id == id));
+      },
       onRemove: remove,
-      onClear: () => setState(quantities.clear),
+      onClear: () {
+        setState(quantities.clear);
+      },
+      onComplete: _completeSale,
     );
 
     return Scaffold(
@@ -105,14 +180,14 @@ class _SalesScreenState extends State<SalesScreen> {
       body: desktop
           ? Row(
               children: [
-                Expanded(flex: 3, child: products),
-                SizedBox(width: 380, child: cart),
+                Expanded(flex: 3, child: productsGrid),
+                SizedBox(width: 390, child: cart),
               ],
             )
           : Column(
               children: [
-                Expanded(child: products),
-                SizedBox(height: 270, child: cart),
+                Expanded(child: productsGrid),
+                SizedBox(height: 285, child: cart),
               ],
             ),
     );
@@ -121,18 +196,22 @@ class _SalesScreenState extends State<SalesScreen> {
 
 class _CartPanel extends StatelessWidget {
   const _CartPanel({
+    required this.products,
     required this.quantities,
     required this.total,
     required this.onAdd,
     required this.onRemove,
     required this.onClear,
+    required this.onComplete,
   });
 
+  final List<ProductRecord> products;
   final Map<int, int> quantities;
   final double total;
   final ValueChanged<int> onAdd;
   final ValueChanged<int> onRemove;
   final VoidCallback onClear;
+  final VoidCallback onComplete;
 
   @override
   Widget build(BuildContext context) {
@@ -151,10 +230,16 @@ class _CartPanel extends StatelessWidget {
               const Expanded(
                 child: Text(
                   'السلة',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              TextButton(onPressed: onClear, child: const Text('مسح')),
+              TextButton(
+                onPressed: onClear,
+                child: const Text('مسح'),
+              ),
             ],
           ),
           const Divider(),
@@ -168,13 +253,18 @@ class _CartPanel extends StatelessWidget {
                   )
                 : ListView(
                     children: quantities.entries.map((entry) {
-                      final item = DemoStore.products[entry.key];
+                      final item = products.firstWhere(
+                        (p) => p.id == entry.key,
+                      );
+
                       return Row(
                         children: [
                           Expanded(
                             child: Text(
                               item.name,
-                              style: const TextStyle(fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -183,7 +273,9 @@ class _CartPanel extends StatelessWidget {
                           ),
                           Text(
                             entry.value.toString(),
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                           IconButton(
                             onPressed: () => onAdd(entry.key),
@@ -200,7 +292,10 @@ class _CartPanel extends StatelessWidget {
               const Expanded(
                 child: Text(
                   'الإجمالي',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               Text(
@@ -217,15 +312,7 @@ class _CartPanel extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: quantities.isEmpty
-                  ? null
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('تم تسجيل عملية بيع تجريبية'),
-                        ),
-                      );
-                    },
+              onPressed: quantities.isEmpty ? null : onComplete,
               icon: const Icon(Icons.check_circle_rounded),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
