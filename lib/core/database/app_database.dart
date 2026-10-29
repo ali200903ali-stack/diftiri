@@ -1315,6 +1315,19 @@ class AppDatabase {
         'table_name': tableName,
       });
 
+      await txn.update(
+        'sales',
+        {
+          'invoice_number':
+              'POS-' + saleId.toString(),
+          'subtotal': total,
+          'status': 'paid',
+          'posted': 1,
+        },
+        where: 'id = ?',
+        whereArgs: [saleId],
+      );
+
       for (final item in quantities.entries) {
         final product = products[item.key]!;
         await txn.insert('sale_items', {
@@ -1390,6 +1403,20 @@ class AppDatabase {
         'supplier_name': supplierName.trim(),
         'total': total,
       });
+
+      await txn.update(
+        'purchases',
+        {
+          'invoice_number':
+              'PINV-' + purchaseId.toString(),
+          'subtotal': total,
+          'status': 'paid',
+          'posted': 1,
+          'payment_method': 'cash',
+        },
+        where: 'id = ?',
+        whereArgs: [purchaseId],
+      );
 
       await txn.insert('purchase_items', {
         'purchase_id': purchaseId,
@@ -1579,7 +1606,16 @@ class AppDatabase {
         DateTime(now.year, now.month, now.day).toIso8601String();
 
     final salesRow = await db.rawQuery(
-      'SELECT COALESCE(SUM(total), 0) AS value FROM sales WHERE created_at >= ?',
+      'SELECT COALESCE(SUM(total), 0) AS value '
+      'FROM sales '
+      'WHERE posted = 1 AND created_at >= ?',
+      [dayStart],
+    );
+
+    final returnRow = await db.rawQuery(
+      'SELECT COALESCE(SUM(total), 0) AS value '
+      'FROM sale_returns '
+      'WHERE created_at >= ?',
       [dayStart],
     );
 
@@ -1601,7 +1637,9 @@ class AppDatabase {
     ''');
 
     return DashboardStats(
-      salesToday: (salesRow.first['value'] as num).toDouble(),
+      salesToday:
+          (salesRow.first['value'] as num).toDouble() -
+          (returnRow.first['value'] as num).toDouble(),
       expensesToday: (expensesRow.first['value'] as num).toDouble(),
       cashBalance: (cashRow.first['value'] as num).toDouble(),
       lowStockCount: (lowRow.first['value'] as num).toInt(),
