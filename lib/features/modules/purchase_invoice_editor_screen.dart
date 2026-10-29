@@ -267,6 +267,7 @@ class _PurchaseInvoiceEditorScreenState
                       child:
                           DropdownButtonFormField<
                               int?>(
+                        isExpanded: true,
                         initialValue: supplierId,
                         decoration:
                             const InputDecoration(
@@ -369,6 +370,7 @@ class _PurchaseInvoiceEditorScreenState
                       child:
                           DropdownButtonFormField<
                               String>(
+                        isExpanded: true,
                         initialValue:
                             paymentMethod,
                         decoration:
@@ -407,6 +409,7 @@ class _PurchaseInvoiceEditorScreenState
                       child:
                           DropdownButtonFormField<
                               String>(
+                        isExpanded: true,
                         initialValue:
                             postingStatus,
                         decoration:
