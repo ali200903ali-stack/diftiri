@@ -16,14 +16,17 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    await AppDatabase.instance.initialize();
+    await AppDatabase.instance.initialize(
+      inMemory: true,
+    );
   });
 
   Future<void> pumpPhone(
     WidgetTester tester,
     Widget screen,
   ) async {
-    tester.view.physicalSize = const Size(360, 800);
+    tester.view.physicalSize =
+        const Size(360, 800);
     tester.view.devicePixelRatio = 1;
 
     addTearDown(() {
@@ -35,16 +38,35 @@ void main() {
       MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        builder: (context, child) => Directionality(
+        builder: (context, child) =>
+            Directionality(
           textDirection: TextDirection.rtl,
-          child: child ?? const SizedBox.shrink(),
+          child:
+              child ?? const SizedBox.shrink(),
         ),
         home: screen,
       ),
     );
 
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(
+        const Duration(milliseconds: 80),
+      );
+    }
+
     expect(tester.takeException(), isNull);
+  }
+
+  Future<void> disposeScreen(
+    WidgetTester tester,
+  ) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpWidget(
+      const SizedBox.shrink(),
+    );
+    await tester.pump(
+      const Duration(milliseconds: 200),
+    );
   }
 
   testWidgets(
@@ -60,9 +82,13 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('sales-products-grid')),
+        find.byKey(
+          const Key('sales-products-grid'),
+        ),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -78,6 +104,8 @@ void main() {
         find.text('المخزون والمنتجات'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -93,6 +121,8 @@ void main() {
         find.text('حفظ فاتورة الشراء'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -108,6 +138,8 @@ void main() {
         find.text('إضافة المصروف'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -126,6 +158,8 @@ void main() {
         find.text('العملاء'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -141,6 +175,8 @@ void main() {
         find.text('الحسابات والقيود'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -156,6 +192,8 @@ void main() {
         find.text('الصندوق'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -171,6 +209,8 @@ void main() {
         find.text('البنوك'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -186,6 +226,8 @@ void main() {
         find.text('حفظ الإعدادات'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 
@@ -201,6 +243,8 @@ void main() {
         find.text('التقارير'),
         findsOneWidget,
       );
+
+      await disposeScreen(tester);
     },
   );
 }

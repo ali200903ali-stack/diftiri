@@ -181,7 +181,7 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._();
   Database? _db;
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool inMemory = false}) async {
     if (_db != null) return;
 
     if (Platform.isWindows || Platform.isLinux) {
@@ -190,13 +190,17 @@ class AppDatabase {
     }
 
     String dbPath;
-    try {
-      final dir = await getApplicationSupportDirectory();
-      await dir.create(recursive: true);
-      dbPath = p.join(dir.path, 'diftiri.db');
-    } catch (_) {
-      final dir = await Directory.systemTemp.createTemp('diftiri_');
-      dbPath = p.join(dir.path, 'diftiri.db');
+    if (inMemory) {
+      dbPath = inMemoryDatabasePath;
+    } else {
+      try {
+        final dir = await getApplicationSupportDirectory();
+        await dir.create(recursive: true);
+        dbPath = p.join(dir.path, 'diftiri.db');
+      } catch (_) {
+        final dir = await Directory.systemTemp.createTemp('diftiri_');
+        dbPath = p.join(dir.path, 'diftiri.db');
+      }
     }
 
     _db = await openDatabase(
