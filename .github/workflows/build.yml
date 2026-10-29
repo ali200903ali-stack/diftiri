@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: diftiri-build-v2-${{ github.ref }}
+  group: diftiri-build-v3-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,7 +35,12 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
-      - run: timeout 180s flutter test
+      - name: Test database
+        run: timeout 60s flutter test test/database_test.dart -r expanded
+      - name: Test dashboard phone layout
+        run: timeout 60s flutter test test/widget_test.dart -r expanded
+      - name: Test module phone layouts
+        run: timeout 90s flutter test test/mobile_modules_test.dart -r expanded
       - run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
