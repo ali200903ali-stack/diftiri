@@ -309,13 +309,11 @@ class _ManualJournalScreenState extends State<ManualJournalScreen> {
 class _JournalDraftLine {
   _JournalDraftLine({
     required this.accountCode,
-    this.debit = 0,
-    this.credit = 0,
   });
 
   String accountCode;
-  double debit;
-  double credit;
+  double debit = 0;
+  double credit = 0;
 }
 
 class _JournalLineEditor extends StatelessWidget {
