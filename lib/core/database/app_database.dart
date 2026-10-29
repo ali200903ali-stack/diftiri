@@ -133,6 +133,48 @@ class DashboardStats {
   double get netToday => salesToday - expensesToday;
 }
 
+
+class BankAccountRecord {
+  const BankAccountRecord({
+    required this.id,
+    required this.name,
+    required this.accountNumber,
+    required this.accountCode,
+    required this.balance,
+  });
+
+  final int id;
+  final String name;
+  final String accountNumber;
+  final String accountCode;
+  final double balance;
+
+  factory BankAccountRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return BankAccountRecord(
+      id: map['id'] as int,
+      name: map['name'] as String,
+      accountNumber:
+          (map['account_number'] as String?) ?? '',
+      accountCode: map['account_code'] as String,
+      balance: (map['balance'] as num).toDouble(),
+    );
+  }
+}
+
+class BusinessSettingsRecord {
+  const BusinessSettingsRecord({
+    required this.businessName,
+    required this.activityType,
+    required this.currency,
+  });
+
+  final String businessName;
+  final String activityType;
+  final String currency;
+}
+
 class AppDatabase {
   AppDatabase._();
 
@@ -159,13 +201,19 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
       onCreate: (db, version) async {
         await _createSchema(db);
         await _seed(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createVersion2Tables(db);
+          await _seedVersion2(db);
+        }
       },
     );
   }
@@ -286,6 +334,44 @@ class AppDatabase {
     ''');
   }
 
+  Future<void> _createVersion2Tables(
+    Database db,
+  ) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS bank_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        account_number TEXT NOT NULL DEFAULT '',
+        account_code TEXT NOT NULL UNIQUE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _seedVersion2(Database db) async {
+    await db.insert(
+      'app_settings',
+      {'key': 'business_name', 'value': 'منشأتي'},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    await db.insert(
+      'app_settings',
+      {'key': 'activity_type', 'value': 'grocery'},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+    await db.insert(
+      'app_settings',
+      {'key': 'currency', 'value': 'YER'},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
   Future<void> _seed(Database db) async {
     final batch = db.batch();
 
@@ -360,6 +446,8 @@ class AppDatabase {
     }
 
     await batch.commit(noResult: true);
+    await _createVersion2Tables(db);
+    await _seedVersion2(db);
   }
 
   Future<List<ProductRecord>> getProducts({String query = ''}) async {
@@ -665,6 +753,142 @@ class AppDatabase {
       cashBalance: (cashRow.first['value'] as num).toDouble(),
       lowStockCount: (lowRow.first['value'] as num).toInt(),
     );
+  }
+
+
+  Future<List<JournalLineRecord>>
+      getCashJournalLines() async {
+    final rows = await getJournalLines();
+    return rows
+        .where((line) => line.accountCode == '101')
+        .toList();
+  }
+
+  Future<List<BankAccountRecord>>
+      getBankAccounts() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        b.id,
+        b.name,
+        b.account_number,
+        b.account_code,
+        COALESCE(SUM(j.debit - j.credit), 0) AS balance
+      FROM bank_accounts b
+      LEFT JOIN journal_lines j
+        ON j.account_code = b.account_code
+      GROUP BY
+        b.id,
+        b.name,
+        b.account_number,
+        b.account_code
+      ORDER BY b.id ASC
+    ''');
+
+    return rows.map(BankAccountRecord.fromMap).toList();
+  }
+
+  Future<int> addBankAccount({
+    required String name,
+    String accountNumber = '',
+    double openingBalance = 0,
+  }) async {
+    if (name.trim().isEmpty) {
+      throw ArgumentError('اسم البنك مطلوب');
+    }
+
+    return db.transaction((txn) async {
+      final countRows = await txn.rawQuery(
+        'SELECT COUNT(*) AS value FROM bank_accounts',
+      );
+      final nextNumber =
+          (countRows.first['value'] as num).toInt() + 1;
+      final accountCode =
+          '102' + nextNumber.toString();
+
+      await txn.insert('accounts', {
+        'code': accountCode,
+        'name': 'بنك - ' + name.trim(),
+        'type': 'asset',
+      });
+
+      final id = await txn.insert('bank_accounts', {
+        'name': name.trim(),
+        'account_number': accountNumber.trim(),
+        'account_code': accountCode,
+      });
+
+      if (openingBalance > 0) {
+        final now = DateTime.now().toIso8601String();
+        final entryId = await _insertJournalEntry(
+          txn,
+          reference: 'BANK-OPEN-' + id.toString(),
+          memo: 'رصيد افتتاحي للبنك',
+          createdAt: now,
+        );
+
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: accountCode,
+          debit: openingBalance,
+        );
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '301',
+          credit: openingBalance,
+        );
+      }
+
+      return id;
+    });
+  }
+
+  Future<BusinessSettingsRecord>
+      getBusinessSettings() async {
+    final rows = await db.query('app_settings');
+    final values = <String, String>{};
+
+    for (final row in rows) {
+      values[row['key'] as String] =
+          row['value'] as String;
+    }
+
+    return BusinessSettingsRecord(
+      businessName:
+          values['business_name'] ?? 'منشأتي',
+      activityType:
+          values['activity_type'] ?? 'grocery',
+      currency: values['currency'] ?? 'YER',
+    );
+  }
+
+  Future<void> saveBusinessSettings({
+    required String businessName,
+    required String activityType,
+    required String currency,
+  }) async {
+    final values = <String, String>{
+      'business_name': businessName.trim().isEmpty
+          ? 'منشأتي'
+          : businessName.trim(),
+      'activity_type': activityType,
+      'currency': currency,
+    };
+
+    await db.transaction((txn) async {
+      for (final entry in values.entries) {
+        await txn.insert(
+          'app_settings',
+          {
+            'key': entry.key,
+            'value': entry.value,
+          },
+          conflictAlgorithm:
+              ConflictAlgorithm.replace,
+        );
+      }
+    });
   }
 
   Future<int> _insertJournalEntry(
