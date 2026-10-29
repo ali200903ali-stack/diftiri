@@ -1,12 +1,15 @@
 import 'package:diftiri/core/database/app_database.dart';
 import 'package:diftiri/core/theme/app_theme.dart';
 import 'package:diftiri/features/modules/accounting_screen.dart';
+import 'package:diftiri/features/modules/banks_screen.dart';
+import 'package:diftiri/features/modules/cash_screen.dart';
 import 'package:diftiri/features/modules/expenses_screen.dart';
 import 'package:diftiri/features/modules/inventory_screen.dart';
 import 'package:diftiri/features/modules/parties_screen.dart';
 import 'package:diftiri/features/modules/purchase_screen.dart';
 import 'package:diftiri/features/modules/reports_screen.dart';
 import 'package:diftiri/features/modules/sales_screen.dart';
+import 'package:diftiri/features/modules/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -136,6 +139,51 @@ void main() {
 
       expect(
         find.text('الحسابات والقيود'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'cash screen is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const CashScreen(),
+      );
+
+      expect(
+        find.text('الصندوق'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'banks screen is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const BanksScreen(),
+      );
+
+      expect(
+        find.text('البنوك'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'settings screen is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const SettingsScreen(),
+      );
+
+      expect(
+        find.text('حفظ الإعدادات'),
         findsOneWidget,
       );
     },
