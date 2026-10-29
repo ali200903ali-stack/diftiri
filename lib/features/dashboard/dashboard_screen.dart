@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+
+import '../../core/database/app_database.dart';
 import '../../core/subscription/subscription_gate.dart';
+import '../../core/theme/app_theme.dart';
 import '../modules/module_router.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int currentIndex = 0;
+  late Future<DashboardStats> statsFuture;
 
   static const modules = <_Module>[
     _Module('المبيعات', Icons.receipt_long_rounded, AppColors.navy),
@@ -21,12 +24,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _Module('الموردون', Icons.local_shipping_rounded, AppColors.navy),
     _Module('الحسابات', Icons.calculate_rounded, AppColors.emerald),
     _Module('الصندوق', Icons.account_balance_wallet_rounded, AppColors.emerald),
-    _Module('البنوك', Icons.account_balance_rounded, Color(0xFFEAF8F4), darkIcon: AppColors.emeraldDark),
     _Module('المصروفات', Icons.request_quote_rounded, AppColors.navy),
     _Module('القيود', Icons.menu_book_rounded, Color(0xFFE8F8F4), darkIcon: AppColors.navy),
     _Module('التقارير', Icons.bar_chart_rounded, AppColors.emerald),
     _Module('الإعدادات', Icons.settings_rounded, AppColors.navy),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    statsFuture = AppDatabase.instance.getDashboardStats();
+  }
+
+  void refreshStats() {
+    setState(() {
+      statsFuture = AppDatabase.instance.getDashboardStats();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,56 +55,77 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 if (desktop) const _DesktopRail(),
                 Expanded(
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          desktop ? 40 : 20,
-                          24,
-                          desktop ? 40 : 20,
-                          28,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            const _BrandHeader(),
-                            const SizedBox(height: 26),
-                            _TrialBanner(allowed: allowed),
-                            const SizedBox(height: 18),
-                            const _SearchBox(),
-                            const SizedBox(height: 22),
-                            const _KpiRow(),
-                            const SizedBox(height: 26),
-                            const Text(
-                              'القائمة الرئيسية',
-                              style: TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.text,
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      refreshStats();
+                    },
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            desktop ? 40 : 20,
+                            24,
+                            desktop ? 40 : 20,
+                            28,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const _BrandHeader(),
+                              const SizedBox(height: 20),
+                              _TrialBanner(allowed: allowed),
+                              const SizedBox(height: 18),
+                              const _SearchBox(),
+                              const SizedBox(height: 22),
+                              FutureBuilder<DashboardStats>(
+                                future: statsFuture,
+                                builder: (context, snapshot) {
+                                  final stats = snapshot.data ??
+                                      const DashboardStats(
+                                        salesToday: 0,
+                                        expensesToday: 0,
+                                        cashBalance: 0,
+                                        lowStockCount: 0,
+                                      );
+                                  return _KpiRow(stats: stats);
+                                },
                               ),
+                              const SizedBox(height: 26),
+                              const Text(
+                                'القائمة الرئيسية',
+                                style: TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.text,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ]),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: desktop ? 40 : 20,
+                          ),
+                          sliver: SliverGrid(
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: desktop ? 6 : 3,
+                              mainAxisSpacing: 18,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: desktop ? 1.05 : .82,
                             ),
-                            const SizedBox(height: 16),
-                          ]),
-                        ),
-                      ),
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: desktop ? 40 : 20,
-                        ),
-                        sliver: SliverGrid(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: desktop ? 6 : 3,
-                            mainAxisSpacing: 18,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: desktop ? 1.05 : .82,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) => _ModuleCard(module: modules[index]),
-                            childCount: modules.length,
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => _ModuleCard(
+                                module: modules[index],
+                                onReturn: refreshStats,
+                              ),
+                              childCount: modules.length,
+                            ),
                           ),
                         ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 110)),
-                    ],
+                        const SliverToBoxAdapter(child: SizedBox(height: 110)),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -102,7 +137,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? null
           : NavigationBar(
               selectedIndex: currentIndex,
-              onDestinationSelected: (value) => setState(() => currentIndex = value),
+              onDestinationSelected: (value) {
+                setState(() {
+                  currentIndex = value;
+                });
+              },
               destinations: const [
                 NavigationDestination(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
                 NavigationDestination(icon: Icon(Icons.search_rounded), label: 'بحث'),
@@ -119,63 +158,14 @@ class _BrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const _BookMark(),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'دفتري',
-              style: TextStyle(
-                color: AppColors.navy,
-                fontSize: 38,
-                height: .95,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              'المحاسبي',
-              style: TextStyle(
-                color: AppColors.navy,
-                fontSize: 21,
-                height: 1.1,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 430),
+        child: Image.asset(
+          'assets/branding/diftiri_logo.jpg',
+          fit: BoxFit.contain,
+          semanticLabel: 'دفتري المحاسبي',
         ),
-      ],
-    );
-  }
-}
-
-class _BookMark extends StatelessWidget {
-  const _BookMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 74,
-      height: 62,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [AppColors.navy, AppColors.emerald],
-        ),
-      ),
-      child: const Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(Icons.menu_book_rounded, color: Colors.white, size: 46),
-          Positioned(
-            left: 14,
-            bottom: 13,
-            child: Icon(Icons.bar_chart_rounded, color: Colors.white, size: 24),
-          ),
-        ],
       ),
     );
   }
@@ -230,37 +220,31 @@ class _SearchBox extends StatelessWidget {
 }
 
 class _KpiRow extends StatelessWidget {
-  const _KpiRow();
+  const _KpiRow({required this.stats});
+  final DashboardStats stats;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const cards = [
-          _KpiCard(
+    return Row(
+      children: [
+        Expanded(
+          child: _KpiCard(
             label: 'مبيعات اليوم',
-            value: '12,450',
+            value: stats.salesToday.toStringAsFixed(0),
             icon: Icons.bar_chart_rounded,
-            tint: Color(0xFFEAF6FC),
-            iconColor: AppColors.emeraldDark,
+            tint: const Color(0xFFEAF6FC),
           ),
-          _KpiCard(
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _KpiCard(
             label: 'الرصيد النقدي',
-            value: '86,200',
+            value: stats.cashBalance.toStringAsFixed(0),
             icon: Icons.monetization_on_rounded,
-            tint: Color(0xFFE7FAF5),
-            iconColor: AppColors.emeraldDark,
+            tint: const Color(0xFFE7FAF5),
           ),
-        ];
-
-        return Row(
-          children: const [
-            Expanded(child: cards[0]),
-            SizedBox(width: 12),
-            Expanded(child: cards[1]),
-          ],
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -271,14 +255,12 @@ class _KpiCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.tint,
-    required this.iconColor,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final Color tint;
-  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -292,15 +274,15 @@ class _KpiCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(.86),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: iconColor, size: 30),
+            child: Icon(icon, color: AppColors.emeraldDark, size: 29),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +295,7 @@ class _KpiCard extends StatelessWidget {
                   child: Text(
                     value,
                     style: const TextStyle(
-                      fontSize: 27,
+                      fontSize: 25,
                       fontWeight: FontWeight.w900,
                       color: AppColors.text,
                     ),
@@ -329,8 +311,13 @@ class _KpiCard extends StatelessWidget {
 }
 
 class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module});
+  const _ModuleCard({
+    required this.module,
+    required this.onReturn,
+  });
+
   final _Module module;
+  final VoidCallback onReturn;
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +328,10 @@ class _ModuleCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(24),
-      onTap: () => ModuleRouter.open(context, module.title),
+      onTap: () async {
+        await ModuleRouter.open(context, module.title);
+        onReturn();
+      },
       child: Column(
         children: [
           Expanded(
