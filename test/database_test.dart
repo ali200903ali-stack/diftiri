@@ -200,4 +200,86 @@ void main() {
     },
   );
 
+
+  test(
+    'purchase draft can be posted and supplier balance updates',
+    () async {
+      final products =
+          await AppDatabase.instance.getProducts();
+      expect(products, isNotEmpty);
+
+      final supplierId =
+          await AppDatabase.instance.addParty(
+        type: 'supplier',
+        name: 'مورد اختبار',
+        phone: '000',
+      );
+
+      final draftId = await AppDatabase.instance
+          .savePurchaseInvoice(
+        lines: [
+          PurchaseLineInput(
+            productId: products.first.id,
+            quantity: 2,
+            unitCost: products.first.costPrice,
+          ),
+        ],
+        supplierId: supplierId,
+        createdAt: DateTime.now(),
+        paymentMethod: 'cash',
+        status: 'draft',
+      );
+
+      var invoice = await AppDatabase.instance
+          .getPurchaseInvoice(draftId);
+      expect(invoice, isNotNull);
+      expect(invoice!.posted, isFalse);
+
+      await AppDatabase.instance.savePurchaseInvoice(
+        purchaseId: draftId,
+        lines: [
+          PurchaseLineInput(
+            productId: products.first.id,
+            quantity: 2,
+            unitCost: products.first.costPrice,
+          ),
+        ],
+        supplierId: supplierId,
+        createdAt: DateTime.now(),
+        paymentMethod: 'cash',
+        status: 'unpaid',
+      );
+
+      invoice = await AppDatabase.instance
+          .getPurchaseInvoice(draftId);
+      expect(invoice, isNotNull);
+      expect(invoice!.posted, isTrue);
+      expect(invoice.status, 'unpaid');
+
+      final suppliers =
+          await AppDatabase.instance.getParties(
+        'supplier',
+      );
+      final supplier = suppliers.firstWhere(
+        (row) => row.id == supplierId,
+      );
+      expect(supplier.balance, greaterThan(0));
+
+      await AppDatabase.instance.recordPartyPayment(
+        partyId: supplierId,
+        type: 'supplier',
+        amount: supplier.balance,
+      );
+
+      final refreshed =
+          await AppDatabase.instance.getParties(
+        'supplier',
+      );
+      final paidSupplier = refreshed.firstWhere(
+        (row) => row.id == supplierId,
+      );
+      expect(paidSupplier.balance, 0);
+    },
+  );
+
 }
