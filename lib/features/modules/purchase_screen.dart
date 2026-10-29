@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'purchase_history_screen.dart';
 
 class PurchaseScreen extends StatefulWidget {
   const PurchaseScreen({super.key});
@@ -72,7 +73,26 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('المشتريات')),
+      appBar: AppBar(
+        title: const Text('المشتريات'),
+        actions: [
+          IconButton(
+            tooltip: 'سجل المشتريات',
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      const PurchaseHistoryScreen(),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.history_rounded,
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -87,7 +107,8 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
             child: Column(
               children: [
                 DropdownButtonFormField<int>(
-                  value: productId,
+                  isExpanded: true,
+                  initialValue: productId,
                   decoration: const InputDecoration(labelText: 'الصنف'),
                   items: products
                       .map(

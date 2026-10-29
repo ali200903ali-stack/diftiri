@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'sales_history_screen.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -272,6 +273,20 @@ class _SalesScreenState extends State<SalesScreen> {
       appBar: AppBar(
         title: const Text('نقطة البيع'),
         actions: [
+          IconButton(
+            tooltip: 'سجل المبيعات',
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      const SalesHistoryScreen(),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.history_rounded,
+            ),
+          ),
           if (!desktop)
             IconButton(
               tooltip: 'السلة',
