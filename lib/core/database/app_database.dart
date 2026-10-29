@@ -134,6 +134,69 @@ class DashboardStats {
 }
 
 
+
+class SaleSummaryRecord {
+  const SaleSummaryRecord({
+    required this.id,
+    required this.createdAt,
+    required this.total,
+    required this.paymentMethod,
+    required this.itemCount,
+  });
+
+  final int id;
+  final DateTime createdAt;
+  final double total;
+  final String paymentMethod;
+  final double itemCount;
+
+  factory SaleSummaryRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return SaleSummaryRecord(
+      id: map['id'] as int,
+      createdAt:
+          DateTime.parse(map['created_at'] as String),
+      total: (map['total'] as num).toDouble(),
+      paymentMethod:
+          (map['payment_method'] as String?) ?? 'cash',
+      itemCount:
+          (map['item_count'] as num).toDouble(),
+    );
+  }
+}
+
+class PurchaseSummaryRecord {
+  const PurchaseSummaryRecord({
+    required this.id,
+    required this.createdAt,
+    required this.supplierName,
+    required this.total,
+    required this.itemCount,
+  });
+
+  final int id;
+  final DateTime createdAt;
+  final String supplierName;
+  final double total;
+  final double itemCount;
+
+  factory PurchaseSummaryRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return PurchaseSummaryRecord(
+      id: map['id'] as int,
+      createdAt:
+          DateTime.parse(map['created_at'] as String),
+      supplierName:
+          (map['supplier_name'] as String?) ?? '',
+      total: (map['total'] as num).toDouble(),
+      itemCount:
+          (map['item_count'] as num).toDouble(),
+    );
+  }
+}
+
 class BankAccountRecord {
   const BankAccountRecord({
     required this.id,
@@ -759,6 +822,99 @@ class AppDatabase {
     );
   }
 
+
+
+  Future<List<SaleSummaryRecord>>
+      getSalesHistory() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        s.id,
+        s.created_at,
+        s.total,
+        s.payment_method,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM sales s
+      LEFT JOIN sale_items i
+        ON i.sale_id = s.id
+      GROUP BY
+        s.id,
+        s.created_at,
+        s.total,
+        s.payment_method
+      ORDER BY s.id DESC
+      LIMIT 250
+    ''');
+
+    return rows
+        .map(SaleSummaryRecord.fromMap)
+        .toList();
+  }
+
+  Future<List<PurchaseSummaryRecord>>
+      getPurchasesHistory() async {
+    final rows = await db.rawQuery('''
+      SELECT
+        p.id,
+        p.created_at,
+        p.supplier_name,
+        p.total,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM purchases p
+      LEFT JOIN purchase_items i
+        ON i.purchase_id = p.id
+      GROUP BY
+        p.id,
+        p.created_at,
+        p.supplier_name,
+        p.total
+      ORDER BY p.id DESC
+      LIMIT 250
+    ''');
+
+    return rows
+        .map(PurchaseSummaryRecord.fromMap)
+        .toList();
+  }
+
+  Future<void> addCashOpeningBalance(
+    double amount,
+  ) async {
+    if (amount <= 0) {
+      throw ArgumentError(
+        'الرصيد الافتتاحي يجب أن يكون أكبر من صفر',
+      );
+    }
+
+    await db.transaction((txn) async {
+      final now = DateTime.now().toIso8601String();
+      final reference =
+          'CASH-OPEN-' +
+          DateTime.now()
+              .millisecondsSinceEpoch
+              .toString();
+
+      final entryId = await _insertJournalEntry(
+        txn,
+        reference: reference,
+        memo: 'رصيد افتتاحي للصندوق',
+        createdAt: now,
+      );
+
+      await _insertJournalLine(
+        txn,
+        entryId: entryId,
+        accountCode: '101',
+        debit: amount,
+      );
+
+      await _insertJournalLine(
+        txn,
+        entryId: entryId,
+        accountCode: '301',
+        credit: amount,
+      );
+    });
+  }
 
   Future<List<JournalLineRecord>>
       getCashJournalLines() async {
