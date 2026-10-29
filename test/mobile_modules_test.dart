@@ -380,15 +380,6 @@ void main() {
       expect(find.text('سفري'), findsOneWidget);
       expect(find.text('محلي'), findsOneWidget);
       expect(tester.takeException(), isNull);
-
-      await disposeScreen(tester);
-
-      await AppDatabase.instance
-          .saveBusinessSettings(
-        businessName: 'منشأتي',
-        activityType: 'grocery',
-        currency: 'YER',
-      );
     },
   );
 
