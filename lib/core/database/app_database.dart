@@ -271,6 +271,129 @@ class BusinessSettingsRecord {
 
 
 
+
+class PurchaseLineInput {
+  const PurchaseLineInput({
+    required this.productId,
+    required this.quantity,
+    required this.unitCost,
+  });
+
+  final int productId;
+  final double quantity;
+  final double unitCost;
+}
+
+class PurchaseInvoiceRecord {
+  const PurchaseInvoiceRecord({
+    required this.id,
+    required this.invoiceNumber,
+    required this.createdAt,
+    required this.dueDate,
+    required this.supplierId,
+    required this.supplierName,
+    required this.status,
+    required this.paymentMethod,
+    required this.subtotal,
+    required this.taxRate,
+    required this.taxAmount,
+    required this.discount,
+    required this.total,
+    required this.notes,
+    required this.posted,
+    required this.itemCount,
+  });
+
+  final int id;
+  final String invoiceNumber;
+  final DateTime createdAt;
+  final DateTime? dueDate;
+  final int? supplierId;
+  final String supplierName;
+  final String status;
+  final String paymentMethod;
+  final double subtotal;
+  final double taxRate;
+  final double taxAmount;
+  final double discount;
+  final double total;
+  final String notes;
+  final bool posted;
+  final double itemCount;
+
+  factory PurchaseInvoiceRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    final rawDueDate = map['due_date'] as String?;
+    return PurchaseInvoiceRecord(
+      id: map['id'] as int,
+      invoiceNumber:
+          (map['invoice_number'] as String?) ?? '',
+      createdAt:
+          DateTime.parse(map['created_at'] as String),
+      dueDate: rawDueDate == null || rawDueDate.isEmpty
+          ? null
+          : DateTime.parse(rawDueDate),
+      supplierId: map['supplier_id'] as int?,
+      supplierName:
+          (map['supplier_name'] as String?) ?? '',
+      status: (map['status'] as String?) ?? 'paid',
+      paymentMethod:
+          (map['payment_method'] as String?) ?? 'cash',
+      subtotal:
+          (map['subtotal'] as num?)?.toDouble() ??
+              (map['total'] as num).toDouble(),
+      taxRate:
+          (map['tax_rate'] as num?)?.toDouble() ?? 0,
+      taxAmount:
+          (map['tax_amount'] as num?)?.toDouble() ?? 0,
+      discount:
+          (map['discount'] as num?)?.toDouble() ?? 0,
+      total: (map['total'] as num).toDouble(),
+      notes: (map['notes'] as String?) ?? '',
+      posted:
+          ((map['posted'] as num?)?.toInt() ?? 1) == 1,
+      itemCount:
+          (map['item_count'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class PurchaseItemRecord {
+  const PurchaseItemRecord({
+    required this.id,
+    required this.purchaseId,
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.unitCost,
+    required this.total,
+  });
+
+  final int id;
+  final int purchaseId;
+  final int productId;
+  final String productName;
+  final double quantity;
+  final double unitCost;
+  final double total;
+
+  factory PurchaseItemRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return PurchaseItemRecord(
+      id: map['id'] as int,
+      purchaseId: map['purchase_id'] as int,
+      productId: map['product_id'] as int,
+      productName:
+          (map['product_name'] as String?) ?? '',
+      quantity: (map['qty'] as num).toDouble(),
+      unitCost: (map['unit_cost'] as num).toDouble(),
+      total: (map['total'] as num).toDouble(),
+    );
+  }
+}
+
 class ReportPoint {
   const ReportPoint({
     required this.label,
@@ -527,7 +650,7 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 4,
+      version: 5,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -546,6 +669,9 @@ class AppDatabase {
         }
         if (oldVersion < 4) {
           await _upgradeToVersion4(db);
+        }
+        if (oldVersion < 5) {
+          await _upgradeToVersion5(db);
         }
       },
     );
@@ -613,7 +739,18 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         created_at TEXT NOT NULL,
         supplier_name TEXT NOT NULL DEFAULT '',
-        total REAL NOT NULL
+        total REAL NOT NULL,
+        invoice_number TEXT NOT NULL DEFAULT '',
+        supplier_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'paid',
+        due_date TEXT,
+        notes TEXT NOT NULL DEFAULT '',
+        subtotal REAL NOT NULL DEFAULT 0,
+        tax_rate REAL NOT NULL DEFAULT 0,
+        tax_amount REAL NOT NULL DEFAULT 0,
+        discount REAL NOT NULL DEFAULT 0,
+        posted INTEGER NOT NULL DEFAULT 1,
+        payment_method TEXT NOT NULL DEFAULT 'cash'
       )
     ''');
 
@@ -854,6 +991,7 @@ class AppDatabase {
       ['110', 'العملاء', 'asset'],
       ['211', 'ضريبة مخرجات', 'liability'],
       ['402', 'مردودات المبيعات', 'contra_revenue'],
+      ['130', 'ضريبة مدخلات', 'asset'],
     ];
 
     for (final account in extraAccounts) {
@@ -867,6 +1005,90 @@ class AppDatabase {
         conflictAlgorithm: ConflictAlgorithm.ignore,
       );
     }
+  }
+
+
+  Future<void> _upgradeToVersion5(Database db) async {
+    final columns = await db.rawQuery(
+      'PRAGMA table_info(purchases)',
+    );
+    final names = columns
+        .map((row) => row['name'] as String)
+        .toSet();
+
+    Future<void> addColumn(
+      String name,
+      String definition,
+    ) async {
+      if (!names.contains(name)) {
+        await db.execute(
+          'ALTER TABLE purchases ADD COLUMN ' +
+              name +
+              ' ' +
+              definition,
+        );
+        names.add(name);
+      }
+    }
+
+    await addColumn(
+      'invoice_number',
+      "TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn('supplier_id', 'INTEGER');
+    await addColumn(
+      'status',
+      "TEXT NOT NULL DEFAULT 'paid'",
+    );
+    await addColumn('due_date', 'TEXT');
+    await addColumn(
+      'notes',
+      "TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'subtotal',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'tax_rate',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'tax_amount',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'discount',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'posted',
+      'INTEGER NOT NULL DEFAULT 1',
+    );
+    await addColumn(
+      'payment_method',
+      "TEXT NOT NULL DEFAULT 'cash'",
+    );
+
+    await db.execute(
+      "UPDATE purchases SET "
+      "invoice_number = 'PINV-' || id "
+      "WHERE invoice_number = ''",
+    );
+    await db.execute(
+      'UPDATE purchases SET subtotal = total '
+      'WHERE subtotal = 0',
+    );
+
+    await db.insert(
+      'accounts',
+      {
+        'code': '130',
+        'name': 'ضريبة مدخلات',
+        'type': 'asset',
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   Future<void> _seedVersion3(Database db) async {
@@ -988,6 +1210,7 @@ class AppDatabase {
     ''');
     await _seedVersion3(db);
     await _upgradeToVersion4(db);
+    await _upgradeToVersion5(db);
   }
 
   Future<List<ProductRecord>> getProducts({String query = ''}) async {
@@ -2416,6 +2639,343 @@ class AppDatabase {
     }
 
     return result;
+  }
+
+
+  Future<List<PurchaseInvoiceRecord>>
+      getPurchaseInvoices({
+    String query = '',
+    String status = 'all',
+  }) async {
+    final filters = <String>[];
+    final args = <Object?>[];
+
+    if (status != 'all') {
+      filters.add('p.status = ?');
+      args.add(status);
+    }
+
+    final normalized = query.trim();
+    if (normalized.isNotEmpty) {
+      filters.add(
+        '(p.invoice_number LIKE ? '
+        'OR COALESCE(s.name, p.supplier_name, \'\') LIKE ?)',
+      );
+      args.add('%' + normalized + '%');
+      args.add('%' + normalized + '%');
+    }
+
+    final where = filters.isEmpty
+        ? ''
+        : 'WHERE ' + filters.join(' AND ');
+
+    final rows = await db.rawQuery('''
+      SELECT
+        p.id,
+        p.invoice_number,
+        p.created_at,
+        p.due_date,
+        p.supplier_id,
+        COALESCE(s.name, p.supplier_name, '') AS supplier_name,
+        p.status,
+        p.payment_method,
+        p.subtotal,
+        p.tax_rate,
+        p.tax_amount,
+        p.discount,
+        p.total,
+        p.notes,
+        p.posted,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM purchases p
+      LEFT JOIN parties s
+        ON s.id = p.supplier_id
+      LEFT JOIN purchase_items i
+        ON i.purchase_id = p.id
+      $where
+      GROUP BY
+        p.id,
+        p.invoice_number,
+        p.created_at,
+        p.due_date,
+        p.supplier_id,
+        s.name,
+        p.supplier_name,
+        p.status,
+        p.payment_method,
+        p.subtotal,
+        p.tax_rate,
+        p.tax_amount,
+        p.discount,
+        p.total,
+        p.notes,
+        p.posted
+      ORDER BY p.id DESC
+      LIMIT 300
+    ''', args);
+
+    return rows
+        .map(PurchaseInvoiceRecord.fromMap)
+        .toList();
+  }
+
+  Future<PurchaseInvoiceRecord?>
+      getPurchaseInvoice(
+    int purchaseId,
+  ) async {
+    final rows = await db.rawQuery('''
+      SELECT
+        p.id,
+        p.invoice_number,
+        p.created_at,
+        p.due_date,
+        p.supplier_id,
+        COALESCE(s.name, p.supplier_name, '') AS supplier_name,
+        p.status,
+        p.payment_method,
+        p.subtotal,
+        p.tax_rate,
+        p.tax_amount,
+        p.discount,
+        p.total,
+        p.notes,
+        p.posted,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM purchases p
+      LEFT JOIN parties s
+        ON s.id = p.supplier_id
+      LEFT JOIN purchase_items i
+        ON i.purchase_id = p.id
+      WHERE p.id = ?
+      GROUP BY p.id
+      LIMIT 1
+    ''', [purchaseId]);
+
+    if (rows.isEmpty) return null;
+    return PurchaseInvoiceRecord.fromMap(
+      rows.first,
+    );
+  }
+
+  Future<List<PurchaseItemRecord>>
+      getPurchaseItems(
+    int purchaseId,
+  ) async {
+    final rows = await db.rawQuery('''
+      SELECT
+        i.id,
+        i.purchase_id,
+        i.product_id,
+        p.name AS product_name,
+        i.qty,
+        i.unit_cost,
+        i.total
+      FROM purchase_items i
+      JOIN products p
+        ON p.id = i.product_id
+      WHERE i.purchase_id = ?
+      ORDER BY i.id ASC
+    ''', [purchaseId]);
+
+    return rows
+        .map(PurchaseItemRecord.fromMap)
+        .toList();
+  }
+
+  Future<int> savePurchaseInvoice({
+    int? purchaseId,
+    required List<PurchaseLineInput> lines,
+    int? supplierId,
+    required DateTime createdAt,
+    DateTime? dueDate,
+    required String paymentMethod,
+    required String status,
+    String notes = '',
+    double taxRate = 0,
+    double discount = 0,
+  }) async {
+    if (lines.isEmpty) {
+      throw ArgumentError('أضف صنفًا واحدًا على الأقل');
+    }
+
+    return db.transaction((txn) async {
+      if (purchaseId != null) {
+        final existing = await txn.query(
+          'purchases',
+          columns: ['posted'],
+          where: 'id = ?',
+          whereArgs: [purchaseId],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          throw StateError('فاتورة الشراء غير موجودة');
+        }
+        final posted =
+            (existing.first['posted'] as num).toInt() == 1;
+        if (posted) {
+          throw StateError(
+            'فاتورة الشراء المرحلة لا تُعدّل',
+          );
+        }
+      }
+
+      double subtotal = 0;
+      final products = <int, ProductRecord>{};
+
+      for (final line in lines) {
+        if (line.quantity <= 0 || line.unitCost < 0) {
+          throw ArgumentError('بيانات الصنف غير صحيحة');
+        }
+
+        final rows = await txn.query(
+          'products',
+          where: 'id = ?',
+          whereArgs: [line.productId],
+          limit: 1,
+        );
+        if (rows.isEmpty) {
+          throw StateError('أحد الأصناف غير موجود');
+        }
+
+        final product =
+            ProductRecord.fromMap(rows.first);
+        products[line.productId] = product;
+        subtotal += line.quantity * line.unitCost;
+      }
+
+      final taxableBase = (subtotal - discount)
+          .clamp(0.0, subtotal)
+          .toDouble();
+      final taxAmount =
+          taxableBase * taxRate / 100;
+      final total = taxableBase + taxAmount;
+      final posted = status == 'draft' ? 0 : 1;
+
+      String supplierName = '';
+      if (supplierId != null) {
+        final supplierRows = await txn.query(
+          'parties',
+          columns: ['name'],
+          where: 'id = ?',
+          whereArgs: [supplierId],
+          limit: 1,
+        );
+        if (supplierRows.isNotEmpty) {
+          supplierName =
+              supplierRows.first['name'] as String;
+        }
+      }
+
+      final values = <String, Object?>{
+        'created_at': createdAt.toIso8601String(),
+        'due_date': dueDate?.toIso8601String(),
+        'supplier_id': supplierId,
+        'supplier_name': supplierName,
+        'status': status,
+        'payment_method': paymentMethod,
+        'notes': notes.trim(),
+        'subtotal': subtotal,
+        'tax_rate': taxRate,
+        'tax_amount': taxAmount,
+        'discount': discount,
+        'total': total,
+        'posted': posted,
+      };
+
+      int id;
+      if (purchaseId == null) {
+        id = await txn.insert('purchases', {
+          ...values,
+          'invoice_number': '',
+        });
+        await txn.update(
+          'purchases',
+          {
+            'invoice_number':
+                'PINV-' + id.toString(),
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } else {
+        id = purchaseId;
+        await txn.update(
+          'purchases',
+          values,
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        await txn.delete(
+          'purchase_items',
+          where: 'purchase_id = ?',
+          whereArgs: [id],
+        );
+      }
+
+      for (final line in lines) {
+        await txn.insert('purchase_items', {
+          'purchase_id': id,
+          'product_id': line.productId,
+          'qty': line.quantity,
+          'unit_cost': line.unitCost,
+          'total': line.quantity * line.unitCost,
+        });
+      }
+
+      if (posted == 1) {
+        for (final line in lines) {
+          final product = products[line.productId]!;
+          if (product.trackStock) {
+            await txn.rawUpdate(
+              'UPDATE products '
+              'SET stock = stock + ?, '
+              'cost_price = ? '
+              'WHERE id = ?',
+              [
+                line.quantity,
+                line.unitCost,
+                line.productId,
+              ],
+            );
+          }
+        }
+
+        final entryId = await _insertJournalEntry(
+          txn,
+          reference:
+              'PINV-' + id.toString(),
+          memo: 'فاتورة مشتريات',
+          createdAt:
+              createdAt.toIso8601String(),
+        );
+
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '120',
+          debit: taxableBase,
+        );
+
+        if (taxAmount > 0) {
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '130',
+            debit: taxAmount,
+          );
+        }
+
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode:
+              status == 'paid' ? '101' : '201',
+          credit: total,
+        );
+      }
+
+      return id;
+    });
   }
 
   Future<int> _insertJournalEntry(
