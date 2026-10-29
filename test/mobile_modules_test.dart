@@ -9,6 +9,8 @@ import 'package:diftiri/features/modules/parties_screen.dart';
 import 'package:diftiri/features/modules/purchase_screen.dart';
 import 'package:diftiri/features/modules/reports_screen.dart';
 import 'package:diftiri/features/modules/sales_screen.dart';
+import 'package:diftiri/features/modules/sales_history_screen.dart';
+import 'package:diftiri/features/modules/purchase_history_screen.dart';
 import 'package:diftiri/features/modules/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -287,6 +289,43 @@ void main() {
       await pumpUntil(
         tester,
         find.text('حفظ الإعدادات'),
+      );
+
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+
+  testWidgets(
+    'sales history is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const SalesHistoryScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('سجل المبيعات'),
+      );
+
+      expect(tester.takeException(), isNull);
+      await disposeScreen(tester);
+    },
+  );
+
+  testWidgets(
+    'purchase history is stable on phone',
+    (tester) async {
+      await pumpPhone(
+        tester,
+        const PurchaseHistoryScreen(),
+      );
+
+      await pumpUntil(
+        tester,
+        find.text('سجل المشتريات'),
       );
 
       expect(tester.takeException(), isNull);
