@@ -8,6 +8,7 @@ import 'inventory_screen.dart';
 import 'parties_screen.dart';
 import 'purchase_invoices_screen.dart';
 import 'reports_screen.dart';
+import 'restaurant_tables_screen.dart';
 import 'sales_invoices_screen.dart';
 import 'settings_screen.dart';
 
@@ -52,6 +53,9 @@ abstract final class ModuleRouter {
         break;
       case 'الصندوق':
         screen = const CashScreen();
+        break;
+      case 'الطاولات':
+        screen = const RestaurantTablesScreen();
         break;
       case 'البنوك':
         screen = const BanksScreen();
