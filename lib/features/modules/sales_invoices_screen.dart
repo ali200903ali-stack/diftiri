@@ -204,12 +204,12 @@ class _InvoiceCard extends StatelessWidget {
         : invoice.status == 'unpaid'
             ? 'غير مدفوعة'
             : 'معلقة';
-    final fg = invoice.status == 'paid'
+    final foreground = invoice.status == 'paid'
         ? AppColors.emeraldDark
         : invoice.status == 'unpaid'
             ? Colors.red.shade700
             : const Color(0xFFE67E00);
-    final bg = invoice.status == 'paid'
+    final background = invoice.status == 'paid'
         ? const Color(0xFFE3F8F1)
         : invoice.status == 'unpaid'
             ? const Color(0xFFFFE8E8)
@@ -222,110 +222,161 @@ class _InvoiceCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(
+              color: AppColors.border,
+            ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F8F4),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.receipt_long_rounded,
-                  color: AppColors.emeraldDark,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F8F4),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
+                      color: AppColors.emeraldDark,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            invoice.invoiceNumber,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                            ),
+                        Text(
+                          invoice.invoiceNumber.isEmpty
+                              ? 'فاتورة #' +
+                                  invoice.id.toString()
+                              : invoice.invoiceNumber,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: bg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: fg,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
-                            ),
+                        const SizedBox(height: 2),
+                        Text(
+                          invoice.customerName.isEmpty
+                              ? 'عميل نقدي'
+                              : invoice.customerName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      invoice.customerName.isEmpty
-                          ? 'عميل نقدي'
-                          : invoice.customerName,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 11),
+              Row(
+                children: [
+                  _InvoiceStatusPill(
+                    label: label,
+                    foreground: foreground,
+                    background: background,
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        invoice.total.toStringAsFixed(0) +
+                            ' ر.ي',
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: AppColors.navy,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 14,
+                    color: AppColors.muted,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      dateText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                        color: AppColors.muted,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 14,
-                          color: AppColors.muted,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          dateText,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const Spacer(),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            invoice.total.toStringAsFixed(0) + ' ر.ي',
-                            style: const TextStyle(
-                              color: AppColors.navy,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_left_rounded,
-                color: AppColors.muted,
+                  ),
+                  const Icon(
+                    Icons.chevron_left_rounded,
+                    color: AppColors.muted,
+                  ),
+                ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvoiceStatusPill extends StatelessWidget {
+  const _InvoiceStatusPill({
+    required this.label,
+    required this.foreground,
+    required this.background,
+  });
+
+  final String label;
+  final Color foreground;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(
+        maxWidth: 110,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 5,
+      ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          style: TextStyle(
+            color: foreground,
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
           ),
         ),
       ),
