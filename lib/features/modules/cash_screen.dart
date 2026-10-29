@@ -3,18 +3,118 @@ import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
 
-class CashScreen extends StatelessWidget {
+class CashScreen extends StatefulWidget {
   const CashScreen({super.key});
+
+  @override
+  State<CashScreen> createState() =>
+      _CashScreenState();
+}
+
+class _CashScreenState extends State<CashScreen> {
+  late Future<List<Object>> future;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    future = Future.wait<Object>([
+      AppDatabase.instance.getDashboardStats(),
+      AppDatabase.instance.getCashJournalLines(),
+    ]);
+  }
+
+  Future<void> _addOpeningBalance() async {
+    final controller = TextEditingController();
+
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'إضافة رصيد افتتاحي',
+          ),
+          content: SizedBox(
+            width: 380,
+            child: TextField(
+              autofocus: true,
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'المبلغ',
+                suffixText: 'ر.ي',
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value =
+                    double.tryParse(controller.text);
+                if (value == null || value <= 0) {
+                  return;
+                }
+                Navigator.pop(
+                  dialogContext,
+                  value,
+                );
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (amount == null) return;
+
+    await AppDatabase.instance
+        .addCashOpeningBalance(amount);
+
+    if (!mounted) return;
+
+    setState(_reload);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'تم تسجيل الرصيد الافتتاحي وقيده محاسبياً',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الصندوق')),
+      appBar: AppBar(
+        title: const Text('الصندوق'),
+        actions: [
+          IconButton(
+            tooltip: 'رصيد افتتاحي',
+            onPressed: _addOpeningBalance,
+            icon: const Icon(
+              Icons.add_card_rounded,
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
       body: FutureBuilder<List<Object>>(
-        future: Future.wait<Object>([
-          AppDatabase.instance.getDashboardStats(),
-          AppDatabase.instance.getCashJournalLines(),
-        ]),
+        future: future,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
@@ -39,23 +139,47 @@ class CashScreen extends StatelessWidget {
                       AppColors.navyDark,
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius:
+                      BorderRadius.circular(24),
                 ),
                 child: Column(
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'الرصيد النقدي',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'الرصيد النقدي',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight:
+                                  FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                Colors.white,
+                          ),
+                          onPressed:
+                              _addOpeningBalance,
+                          icon: const Icon(
+                            Icons.add_rounded,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'رصيد افتتاحي',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
+                      alignment:
+                          Alignment.centerRight,
                       child: Text(
                         stats.cashBalance
                                 .toStringAsFixed(0) +
@@ -63,7 +187,8 @@ class CashScreen extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 32,
-                          fontWeight: FontWeight.w900,
+                          fontWeight:
+                              FontWeight.w900,
                         ),
                       ),
                     ),
@@ -117,9 +242,8 @@ class _CashMovementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final incoming = line.debit > 0;
-    final amount = incoming
-        ? line.debit
-        : line.credit;
+    final amount =
+        incoming ? line.debit : line.credit;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
