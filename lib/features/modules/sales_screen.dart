@@ -6,7 +6,12 @@ import 'sales_history_screen.dart';
 import 'restaurant_tables_screen.dart';
 
 class SalesScreen extends StatefulWidget {
-  const SalesScreen({super.key});
+  const SalesScreen({
+    super.key,
+    this.activityTypeOverride,
+  });
+
+  final String? activityTypeOverride;
 
   @override
   State<SalesScreen> createState() => _SalesScreenState();
@@ -38,8 +43,13 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<void> _loadProducts() async {
     final result = await AppDatabase.instance.getProducts();
-    final settings =
-        await AppDatabase.instance.getBusinessSettings();
+    final settings = widget.activityTypeOverride == null
+        ? await AppDatabase.instance.getBusinessSettings()
+        : BusinessSettingsRecord(
+            businessName: 'منشأتي',
+            activityType: widget.activityTypeOverride!,
+            currency: 'YER',
+          );
     final tables =
         await AppDatabase.instance.getRestaurantTables();
 

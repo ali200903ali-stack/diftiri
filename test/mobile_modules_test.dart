@@ -358,16 +358,11 @@ void main() {
   testWidgets(
     'restaurant sale controls fit 360x800 phone',
     (tester) async {
-      await AppDatabase.instance
-          .saveBusinessSettings(
-        businessName: 'منشأتي',
-        activityType: 'restaurant',
-        currency: 'YER',
-      );
-
       await pumpPhone(
         tester,
-        const SalesScreen(),
+        const SalesScreen(
+          activityTypeOverride: 'restaurant',
+        ),
       );
 
       await pumpUntil(
