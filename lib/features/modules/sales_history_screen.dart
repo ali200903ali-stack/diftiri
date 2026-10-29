@@ -45,6 +45,14 @@ class SalesHistoryScreen extends StatelessWidget {
                   .toLocal()
                   .toString()
                   .substring(0, 16);
+              final orderLabel =
+                  sale.orderType == 'dine_in'
+                  ? (sale.tableName.isEmpty
+                      ? 'محلي'
+                      : 'محلي - ' + sale.tableName)
+                  : sale.orderType == 'takeaway'
+                      ? 'سفري'
+                      : 'بيع مباشر';
 
               return Container(
                 padding: const EdgeInsets.all(14),
@@ -89,6 +97,8 @@ class SalesHistoryScreen extends StatelessWidget {
                           ),
                           Text(
                             date +
+                                ' • ' +
+                                orderLabel +
                                 ' • ' +
                                 sale.itemCount
                                     .toStringAsFixed(0) +

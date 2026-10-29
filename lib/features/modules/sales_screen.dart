@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
 import 'sales_history_screen.dart';
+import 'restaurant_tables_screen.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -16,8 +17,12 @@ class _SalesScreenState extends State<SalesScreen> {
   final searchController = TextEditingController();
 
   List<ProductRecord> products = [];
+  List<RestaurantTableRecord> restaurantTables = [];
+  BusinessSettingsRecord? businessSettings;
   bool loading = true;
   String query = '';
+  String orderType = 'retail';
+  int? selectedTableId;
 
   @override
   void initState() {
@@ -33,10 +38,34 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<void> _loadProducts() async {
     final result = await AppDatabase.instance.getProducts();
+    final settings =
+        await AppDatabase.instance.getBusinessSettings();
+    final tables =
+        await AppDatabase.instance.getRestaurantTables();
+
     if (!mounted) return;
+
+    final restaurantEnabled =
+        settings.activityType == 'restaurant' ||
+        settings.activityType == 'mixed';
 
     setState(() {
       products = result;
+      businessSettings = settings;
+      restaurantTables = tables;
+
+      if (restaurantEnabled && orderType == 'retail') {
+        orderType = 'takeaway';
+      }
+
+      if (!restaurantEnabled) {
+        orderType = 'retail';
+        selectedTableId = null;
+      } else if (selectedTableId == null &&
+          tables.isNotEmpty) {
+        selectedTableId = tables.first.id;
+      }
+
       loading = false;
     });
   }
@@ -52,6 +81,24 @@ class _SalesScreenState extends State<SalesScreen> {
               product.sku.contains(normalized),
         )
         .toList();
+  }
+
+  bool get restaurantEnabled {
+    final activity = businessSettings?.activityType;
+    return activity == 'restaurant' ||
+        activity == 'mixed';
+  }
+
+  String get selectedTableName {
+    if (selectedTableId == null) return '';
+
+    for (final table in restaurantTables) {
+      if (table.id == selectedTableId) {
+        return table.name;
+      }
+    }
+
+    return '';
   }
 
   int get cartCount {
@@ -107,7 +154,19 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<bool> _completeSale() async {
     try {
-      await AppDatabase.instance.recordSale(quantities);
+      if (restaurantEnabled &&
+          orderType == 'dine_in' &&
+          selectedTableId == null) {
+        throw StateError('اختر الطاولة قبل إتمام الطلب');
+      }
+
+      await AppDatabase.instance.recordSale(
+        quantities,
+        orderType: orderType,
+        tableName: orderType == 'dine_in'
+            ? selectedTableName
+            : '',
+      );
 
       if (!mounted) return false;
 
@@ -206,6 +265,28 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final content = Column(
       children: [
+        if (restaurantEnabled)
+          _RestaurantOrderControls(
+            orderType: orderType,
+            tables: restaurantTables,
+            selectedTableId: selectedTableId,
+            onOrderTypeChanged: (value) {
+              setState(() {
+                orderType = value;
+                if (value == 'dine_in' &&
+                    selectedTableId == null &&
+                    restaurantTables.isNotEmpty) {
+                  selectedTableId =
+                      restaurantTables.first.id;
+                }
+              });
+            },
+            onTableChanged: (value) {
+              setState(() {
+                selectedTableId = value;
+              });
+            },
+          ),
         Padding(
           padding: EdgeInsets.fromLTRB(
             desktop ? 20 : 14,
@@ -287,6 +368,22 @@ class _SalesScreenState extends State<SalesScreen> {
               Icons.history_rounded,
             ),
           ),
+          if (restaurantEnabled)
+            IconButton(
+              tooltip: 'الطاولات',
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        const RestaurantTablesScreen(),
+                  ),
+                );
+                await _loadProducts();
+              },
+              icon: const Icon(
+                Icons.table_restaurant_rounded,
+              ),
+            ),
           if (!desktop)
             IconButton(
               tooltip: 'السلة',
@@ -338,6 +435,171 @@ class _SalesScreenState extends State<SalesScreen> {
               total: total,
               onTap: _showMobileCart,
             ),
+    );
+  }
+}
+
+class _RestaurantOrderControls
+    extends StatelessWidget {
+  const _RestaurantOrderControls({
+    required this.orderType,
+    required this.tables,
+    required this.selectedTableId,
+    required this.onOrderTypeChanged,
+    required this.onTableChanged,
+  });
+
+  final String orderType;
+  final List<RestaurantTableRecord> tables;
+  final int? selectedTableId;
+  final ValueChanged<String> onOrderTypeChanged;
+  final ValueChanged<int?> onTableChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('restaurant-order-controls'),
+      margin: const EdgeInsets.fromLTRB(
+        14,
+        10,
+        14,
+        0,
+      ),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _OrderTypeButton(
+                  label: 'سفري',
+                  icon: Icons.takeout_dining_rounded,
+                  selected:
+                      orderType == 'takeaway',
+                  onTap: () =>
+                      onOrderTypeChanged(
+                    'takeaway',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _OrderTypeButton(
+                  label: 'محلي',
+                  icon:
+                      Icons.table_restaurant_rounded,
+                  selected:
+                      orderType == 'dine_in',
+                  onTap: () =>
+                      onOrderTypeChanged(
+                    'dine_in',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (orderType == 'dine_in') ...[
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(
+              isExpanded: true,
+              initialValue: selectedTableId,
+              decoration: const InputDecoration(
+                labelText: 'الطاولة',
+                prefixIcon: Icon(
+                  Icons.table_restaurant_rounded,
+                ),
+              ),
+              items: tables
+                  .map(
+                    (table) =>
+                        DropdownMenuItem<int>(
+                      value: table.id,
+                      child: Text(table.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: tables.isEmpty
+                  ? null
+                  : onTableChanged,
+            ),
+            if (tables.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'أضف طاولة من زر الطاولات أعلى الشاشة',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderTypeButton extends StatelessWidget {
+  const _OrderTypeButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected
+          ? const Color(0xFFE8F8F4)
+          : AppColors.canvas,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 11,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected
+                    ? AppColors.emeraldDark
+                    : AppColors.muted,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: selected
+                      ? AppColors.emeraldDark
+                      : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
