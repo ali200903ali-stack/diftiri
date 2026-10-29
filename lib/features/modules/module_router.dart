@@ -8,7 +8,7 @@ import 'inventory_screen.dart';
 import 'parties_screen.dart';
 import 'purchase_screen.dart';
 import 'reports_screen.dart';
-import 'sales_screen.dart';
+import 'sales_invoices_screen.dart';
 import 'settings_screen.dart';
 
 abstract final class ModuleRouter {
@@ -20,7 +20,7 @@ abstract final class ModuleRouter {
 
     switch (title) {
       case 'المبيعات':
-        screen = const SalesScreen();
+        screen = const SalesInvoicesScreen();
         break;
       case 'المشتريات':
         screen = const PurchaseScreen();
