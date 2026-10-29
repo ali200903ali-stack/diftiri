@@ -236,6 +236,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<int?>(
+                        isExpanded: true,
                         initialValue: customerId,
                         decoration: const InputDecoration(
                           labelText: 'العميل',
@@ -311,6 +312,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                isExpanded: true,
                         initialValue: paymentMethod,
                         decoration: const InputDecoration(
                           labelText: 'طريقة الدفع',
@@ -338,6 +340,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                isExpanded: true,
                         initialValue: postingStatus,
                         decoration: const InputDecoration(
                           labelText: 'حالة الدفع',
@@ -558,6 +561,7 @@ class _InvoiceLineEditor extends StatelessWidget {
     return Column(
       children: [
         DropdownButtonFormField<int>(
+          isExpanded: true,
           initialValue: line.productId,
           decoration: const InputDecoration(labelText: 'الصنف'),
           items: products
@@ -672,11 +676,15 @@ class _SectionCard extends StatelessWidget {
             children: [
               Icon(icon, color: AppColors.emeraldDark),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
