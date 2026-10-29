@@ -351,6 +351,7 @@ class _JournalLineEditor extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: line.accountCode,
                 decoration: const InputDecoration(
                   labelText: 'الحساب',
