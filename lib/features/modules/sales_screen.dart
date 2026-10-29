@@ -179,6 +179,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   if (success && sheetContext.mounted) {
                     Navigator.pop(sheetContext);
                   }
+                  return success;
                 },
                 sheetMode: true,
               ),
