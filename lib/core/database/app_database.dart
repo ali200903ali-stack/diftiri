@@ -2188,8 +2188,14 @@ class AppDatabase {
           createdAt: createdAt.toIso8601String(),
         );
 
-        final receivableAccount =
-            status == 'paid' ? '101' : '110';
+        String receivableAccount = '110';
+        if (status == 'paid') {
+          receivableAccount =
+              await _paymentAssetAccount(
+            txn,
+            paymentMethod,
+          );
+        }
 
         await _insertJournalLine(
           txn,
@@ -2197,6 +2203,15 @@ class AppDatabase {
           accountCode: receivableAccount,
           debit: total,
         );
+
+        if (status == 'unpaid' && customerId != null) {
+          await txn.rawUpdate(
+            'UPDATE parties '
+            'SET balance = balance + ? '
+            'WHERE id = ?',
+            [total, customerId],
+          );
+        }
         await _insertJournalLine(
           txn,
           entryId: entryId,
@@ -2385,13 +2400,34 @@ class AppDatabase {
 
       final originalStatus =
           (sale['status'] as String?) ?? 'paid';
+
+      String refundAccount = '110';
+      if (originalStatus == 'paid') {
+        refundAccount = await _paymentAssetAccount(
+          txn,
+          (sale['payment_method'] as String?) ?? 'cash',
+        );
+      }
+
       await _insertJournalLine(
         txn,
         entryId: entryId,
-        accountCode:
-            originalStatus == 'paid' ? '101' : '110',
+        accountCode: refundAccount,
         credit: refundTotal,
       );
+
+      if (originalStatus == 'unpaid') {
+        final customerId =
+            sale['customer_id'] as int?;
+        if (customerId != null) {
+          await txn.rawUpdate(
+            'UPDATE parties '
+            'SET balance = MAX(balance - ?, 0) '
+            'WHERE id = ?',
+            [refundTotal, customerId],
+          );
+        }
+      }
 
       if (returnedCost > 0) {
         await _insertJournalLine(
@@ -2965,17 +3001,140 @@ class AppDatabase {
           );
         }
 
+        String payableAccount = '201';
+        if (status == 'paid') {
+          payableAccount =
+              await _paymentAssetAccount(
+            txn,
+            paymentMethod,
+          );
+        }
+
         await _insertJournalLine(
           txn,
           entryId: entryId,
-          accountCode:
-              status == 'paid' ? '101' : '201',
+          accountCode: payableAccount,
           credit: total,
         );
+
+        if (status == 'unpaid' && supplierId != null) {
+          await txn.rawUpdate(
+            'UPDATE parties '
+            'SET balance = balance + ? '
+            'WHERE id = ?',
+            [total, supplierId],
+          );
+        }
       }
 
       return id;
     });
+  }
+
+
+  Future<void> recordPartyPayment({
+    required int partyId,
+    required String type,
+    required double amount,
+    String paymentMethod = 'cash',
+  }) async {
+    if (amount <= 0) {
+      throw ArgumentError('المبلغ يجب أن يكون أكبر من صفر');
+    }
+
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'parties',
+        where: 'id = ? AND type = ?',
+        whereArgs: [partyId, type],
+        limit: 1,
+      );
+
+      if (rows.isEmpty) {
+        throw StateError('الحساب غير موجود');
+      }
+
+      final balance =
+          (rows.first['balance'] as num).toDouble();
+      if (amount > balance + 0.001) {
+        throw ArgumentError(
+          'المبلغ أكبر من الرصيد المستحق',
+        );
+      }
+
+      final assetAccount =
+          await _paymentAssetAccount(
+        txn,
+        paymentMethod,
+      );
+      final now = DateTime.now().toIso8601String();
+      final entryId = await _insertJournalEntry(
+        txn,
+        reference: 'PAY-' +
+            partyId.toString() +
+            '-' +
+            DateTime.now()
+                .millisecondsSinceEpoch
+                .toString(),
+        memo: type == 'customer'
+            ? 'تحصيل من عميل'
+            : 'سداد لمورد',
+        createdAt: now,
+      );
+
+      if (type == 'customer') {
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: assetAccount,
+          debit: amount,
+        );
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '110',
+          credit: amount,
+        );
+      } else {
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '201',
+          debit: amount,
+        );
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: assetAccount,
+          credit: amount,
+        );
+      }
+
+      await txn.rawUpdate(
+        'UPDATE parties '
+        'SET balance = MAX(balance - ?, 0) '
+        'WHERE id = ?',
+        [amount, partyId],
+      );
+    });
+  }
+
+  Future<String> _paymentAssetAccount(
+    Transaction txn,
+    String paymentMethod,
+  ) async {
+    if (paymentMethod == 'bank') {
+      final rows = await txn.query(
+        'bank_accounts',
+        columns: ['account_code'],
+        orderBy: 'id ASC',
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        return rows.first['account_code'] as String;
+      }
+    }
+    return '101';
   }
 
   Future<int> _insertJournalEntry(
