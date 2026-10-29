@@ -270,6 +270,40 @@ class BusinessSettingsRecord {
 }
 
 
+
+class ReportPoint {
+  const ReportPoint({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final double value;
+}
+
+class ReportSummary {
+  const ReportSummary({
+    required this.sales,
+    required this.returnsValue,
+    required this.expenses,
+    required this.costOfGoods,
+    required this.receivables,
+    required this.inventoryValue,
+  });
+
+  final double sales;
+  final double returnsValue;
+  final double expenses;
+  final double costOfGoods;
+  final double receivables;
+  final double inventoryValue;
+
+  double get netSales => sales - returnsValue;
+
+  double get netProfit =>
+      netSales - costOfGoods - expenses;
+}
+
 class AccountRecord {
   const AccountRecord({
     required this.code,
@@ -2220,6 +2254,168 @@ class AppDatabase {
 
       return entryId;
     });
+  }
+
+
+  Future<ReportSummary> getReportSummary({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final now = DateTime.now();
+    final start = from ??
+        DateTime(now.year, now.month, 1);
+    final end = to ??
+        DateTime(
+          now.year,
+          now.month + 1,
+          1,
+        );
+
+    final startIso = start.toIso8601String();
+    final endIso = end.toIso8601String();
+
+    final salesRows = await db.rawQuery(
+      'SELECT COALESCE(SUM(total), 0) AS value '
+      'FROM sales '
+      'WHERE posted = 1 '
+      'AND created_at >= ? '
+      'AND created_at < ?',
+      [startIso, endIso],
+    );
+
+    final returnsRows = await db.rawQuery(
+      'SELECT COALESCE(SUM(total), 0) AS value '
+      'FROM sale_returns '
+      'WHERE created_at >= ? '
+      'AND created_at < ?',
+      [startIso, endIso],
+    );
+
+    final expensesRows = await db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) AS value '
+      'FROM expenses '
+      'WHERE created_at >= ? '
+      'AND created_at < ?',
+      [startIso, endIso],
+    );
+
+    final cogsRows = await db.rawQuery('''
+      SELECT COALESCE(SUM(l.debit - l.credit), 0) AS value
+      FROM journal_lines l
+      JOIN journal_entries e ON e.id = l.entry_id
+      WHERE l.account_code = '501'
+        AND e.created_at >= ?
+        AND e.created_at < ?
+    ''', [startIso, endIso]);
+
+    final receivableRows = await db.rawQuery('''
+      SELECT COALESCE(SUM(debit - credit), 0) AS value
+      FROM journal_lines
+      WHERE account_code = '110'
+    ''');
+
+    final inventoryRows = await db.rawQuery('''
+      SELECT COALESCE(
+        SUM(
+          CASE
+            WHEN track_stock = 1
+            THEN stock * cost_price
+            ELSE 0
+          END
+        ),
+        0
+      ) AS value
+      FROM products
+    ''');
+
+    return ReportSummary(
+      sales:
+          (salesRows.first['value'] as num).toDouble(),
+      returnsValue:
+          (returnsRows.first['value'] as num).toDouble(),
+      expenses:
+          (expensesRows.first['value'] as num).toDouble(),
+      costOfGoods:
+          (cogsRows.first['value'] as num).toDouble(),
+      receivables:
+          (receivableRows.first['value'] as num).toDouble(),
+      inventoryValue:
+          (inventoryRows.first['value'] as num).toDouble(),
+    );
+  }
+
+  Future<List<ReportPoint>> getMonthlySalesTrend({
+    int months = 6,
+  }) async {
+    final now = DateTime.now();
+    final result = <ReportPoint>[];
+    const monthNames = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+
+    for (var offset = months - 1;
+        offset >= 0;
+        offset--) {
+      final start = DateTime(
+        now.year,
+        now.month - offset,
+        1,
+      );
+      final end = DateTime(
+        start.year,
+        start.month + 1,
+        1,
+      );
+
+      final salesRows = await db.rawQuery(
+        'SELECT COALESCE(SUM(total), 0) AS value '
+        'FROM sales '
+        'WHERE posted = 1 '
+        'AND created_at >= ? '
+        'AND created_at < ?',
+        [
+          start.toIso8601String(),
+          end.toIso8601String(),
+        ],
+      );
+
+      final returnRows = await db.rawQuery(
+        'SELECT COALESCE(SUM(total), 0) AS value '
+        'FROM sale_returns '
+        'WHERE created_at >= ? '
+        'AND created_at < ?',
+        [
+          start.toIso8601String(),
+          end.toIso8601String(),
+        ],
+      );
+
+      final sales =
+          (salesRows.first['value'] as num).toDouble();
+      final returnsValue =
+          (returnRows.first['value'] as num)
+              .toDouble();
+
+      result.add(
+        ReportPoint(
+          label: monthNames[start.month - 1],
+          value: sales - returnsValue,
+        ),
+      );
+    }
+
+    return result;
   }
 
   Future<int> _insertJournalEntry(
