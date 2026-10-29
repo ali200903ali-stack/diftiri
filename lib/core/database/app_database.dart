@@ -987,6 +987,32 @@ class AppDatabase {
     });
   }
 
+  Future<void> updateProduct({
+    required int id,
+    required String name,
+    required String sku,
+    required double salePrice,
+    required double costPrice,
+    required double stock,
+    required bool trackStock,
+    String category = '',
+  }) async {
+    await db.update(
+      'products',
+      {
+        'name': name.trim(),
+        'sku': sku.trim(),
+        'sale_price': salePrice,
+        'cost_price': costPrice,
+        'stock': stock,
+        'track_stock': trackStock ? 1 : 0,
+        'category': category.trim(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> recordSale(
     Map<int, int> quantities, {
     String paymentMethod = 'cash',
@@ -1190,13 +1216,72 @@ class AppDatabase {
     required String type,
     required String name,
     String phone = '',
-  }) {
-    return db.insert('parties', {
-      'type': type,
-      'name': name.trim(),
-      'phone': phone.trim(),
-      'balance': 0.0,
+    double openingBalance = 0,
+  }) async {
+    return db.transaction((txn) async {
+      final id = await txn.insert('parties', {
+        'type': type,
+        'name': name.trim(),
+        'phone': phone.trim(),
+        'balance': openingBalance,
+      });
+
+      if (openingBalance > 0) {
+        final now = DateTime.now().toIso8601String();
+        final entryId = await _insertJournalEntry(
+          txn,
+          reference: 'OPEN-PARTY-' + id.toString(),
+          memo: 'رصيد افتتاحي - ' + name.trim(),
+          createdAt: now,
+        );
+
+        if (type == 'customer') {
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '110',
+            debit: openingBalance,
+          );
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '301',
+            credit: openingBalance,
+          );
+        } else {
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '301',
+            debit: openingBalance,
+          );
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '201',
+            credit: openingBalance,
+          );
+        }
+      }
+
+      return id;
     });
+  }
+
+  Future<void> updateParty({
+    required int id,
+    required String name,
+    String phone = '',
+  }) async {
+    await db.update(
+      'parties',
+      {
+        'name': name.trim(),
+        'phone': phone.trim(),
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<List<PartyRecord>> getParties(String type) async {
