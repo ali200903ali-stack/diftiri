@@ -269,6 +269,198 @@ class BusinessSettingsRecord {
   final String currency;
 }
 
+
+class AccountRecord {
+  const AccountRecord({
+    required this.code,
+    required this.name,
+    required this.type,
+  });
+
+  final String code;
+  final String name;
+  final String type;
+
+  factory AccountRecord.fromMap(Map<String, Object?> map) {
+    return AccountRecord(
+      code: map['code'] as String,
+      name: map['name'] as String,
+      type: map['type'] as String,
+    );
+  }
+}
+
+class InvoiceLineInput {
+  const InvoiceLineInput({
+    required this.productId,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final int productId;
+  final double quantity;
+  final double unitPrice;
+}
+
+class JournalInputLine {
+  const JournalInputLine({
+    required this.accountCode,
+    required this.debit,
+    required this.credit,
+  });
+
+  final String accountCode;
+  final double debit;
+  final double credit;
+}
+
+class SalesInvoiceRecord {
+  const SalesInvoiceRecord({
+    required this.id,
+    required this.invoiceNumber,
+    required this.createdAt,
+    required this.dueDate,
+    required this.customerId,
+    required this.customerName,
+    required this.status,
+    required this.paymentMethod,
+    required this.subtotal,
+    required this.taxRate,
+    required this.taxAmount,
+    required this.discount,
+    required this.total,
+    required this.notes,
+    required this.posted,
+    required this.itemCount,
+  });
+
+  final int id;
+  final String invoiceNumber;
+  final DateTime createdAt;
+  final DateTime? dueDate;
+  final int? customerId;
+  final String customerName;
+  final String status;
+  final String paymentMethod;
+  final double subtotal;
+  final double taxRate;
+  final double taxAmount;
+  final double discount;
+  final double total;
+  final String notes;
+  final bool posted;
+  final double itemCount;
+
+  factory SalesInvoiceRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    final rawDueDate = map['due_date'] as String?;
+    return SalesInvoiceRecord(
+      id: map['id'] as int,
+      invoiceNumber:
+          (map['invoice_number'] as String?) ?? '',
+      createdAt:
+          DateTime.parse(map['created_at'] as String),
+      dueDate: rawDueDate == null || rawDueDate.isEmpty
+          ? null
+          : DateTime.parse(rawDueDate),
+      customerId: map['customer_id'] as int?,
+      customerName:
+          (map['customer_name'] as String?) ?? '',
+      status: (map['status'] as String?) ?? 'paid',
+      paymentMethod:
+          (map['payment_method'] as String?) ?? 'cash',
+      subtotal: (map['subtotal'] as num?)?.toDouble() ??
+          (map['total'] as num).toDouble(),
+      taxRate: (map['tax_rate'] as num?)?.toDouble() ?? 0,
+      taxAmount:
+          (map['tax_amount'] as num?)?.toDouble() ?? 0,
+      discount:
+          (map['discount'] as num?)?.toDouble() ?? 0,
+      total: (map['total'] as num).toDouble(),
+      notes: (map['notes'] as String?) ?? '',
+      posted: ((map['posted'] as num?)?.toInt() ?? 1) == 1,
+      itemCount:
+          (map['item_count'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class SaleItemRecord {
+  const SaleItemRecord({
+    required this.id,
+    required this.saleId,
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.unitPrice,
+    required this.unitCost,
+    required this.total,
+    required this.returnedQuantity,
+  });
+
+  final int id;
+  final int saleId;
+  final int productId;
+  final String productName;
+  final double quantity;
+  final double unitPrice;
+  final double unitCost;
+  final double total;
+  final double returnedQuantity;
+
+  double get returnableQuantity =>
+      (quantity - returnedQuantity).clamp(0, quantity);
+
+  factory SaleItemRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return SaleItemRecord(
+      id: map['id'] as int,
+      saleId: map['sale_id'] as int,
+      productId: map['product_id'] as int,
+      productName:
+          (map['product_name'] as String?) ?? '',
+      quantity: (map['qty'] as num).toDouble(),
+      unitPrice: (map['unit_price'] as num).toDouble(),
+      unitCost:
+          (map['unit_cost'] as num?)?.toDouble() ?? 0,
+      total: (map['total'] as num).toDouble(),
+      returnedQuantity:
+          (map['returned_qty'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class SaleReturnSummaryRecord {
+  const SaleReturnSummaryRecord({
+    required this.id,
+    required this.saleId,
+    required this.createdAt,
+    required this.total,
+    required this.reference,
+  });
+
+  final int id;
+  final int saleId;
+  final DateTime createdAt;
+  final double total;
+  final String reference;
+
+  factory SaleReturnSummaryRecord.fromMap(
+    Map<String, Object?> map,
+  ) {
+    return SaleReturnSummaryRecord(
+      id: map['id'] as int,
+      saleId: map['sale_id'] as int,
+      createdAt:
+          DateTime.parse(map['created_at'] as String),
+      total: (map['total'] as num).toDouble(),
+      reference: (map['reference'] as String?) ?? '',
+    );
+  }
+}
+
 class AppDatabase {
   AppDatabase._();
 
@@ -299,7 +491,7 @@ class AppDatabase {
 
     _db = await openDatabase(
       dbPath,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -315,6 +507,9 @@ class AppDatabase {
         if (oldVersion < 3) {
           await _createVersion3Tables(db);
           await _seedVersion3(db);
+        }
+        if (oldVersion < 4) {
+          await _upgradeToVersion4(db);
         }
       },
     );
@@ -349,7 +544,17 @@ class AppDatabase {
         total REAL NOT NULL,
         payment_method TEXT NOT NULL,
         order_type TEXT NOT NULL DEFAULT 'retail',
-        table_name TEXT NOT NULL DEFAULT ''
+        table_name TEXT NOT NULL DEFAULT '',
+        invoice_number TEXT NOT NULL DEFAULT '',
+        customer_id INTEGER,
+        status TEXT NOT NULL DEFAULT 'paid',
+        due_date TEXT,
+        notes TEXT NOT NULL DEFAULT '',
+        subtotal REAL NOT NULL DEFAULT 0,
+        tax_rate REAL NOT NULL DEFAULT 0,
+        tax_amount REAL NOT NULL DEFAULT 0,
+        discount REAL NOT NULL DEFAULT 0,
+        posted INTEGER NOT NULL DEFAULT 1
       )
     ''');
 
@@ -360,6 +565,7 @@ class AppDatabase {
         product_id INTEGER NOT NULL,
         qty REAL NOT NULL,
         unit_price REAL NOT NULL,
+        unit_cost REAL NOT NULL DEFAULT 0,
         total REAL NOT NULL,
         FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
         FOREIGN KEY (product_id) REFERENCES products(id)
@@ -480,6 +686,153 @@ class AppDatabase {
     ''');
   }
 
+
+  Future<void> _upgradeToVersion4(Database db) async {
+    final columns = await db.rawQuery(
+      'PRAGMA table_info(sales)',
+    );
+    final names = columns
+        .map((row) => row['name'] as String)
+        .toSet();
+
+    Future<void> addColumn(
+      String name,
+      String definition,
+    ) async {
+      if (!names.contains(name)) {
+        await db.execute(
+          'ALTER TABLE sales ADD COLUMN ' +
+              name +
+              ' ' +
+              definition,
+        );
+        names.add(name);
+      }
+    }
+
+    await addColumn(
+      'invoice_number',
+      "TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn('customer_id', 'INTEGER');
+    await addColumn(
+      'status',
+      "TEXT NOT NULL DEFAULT 'paid'",
+    );
+    await addColumn('due_date', 'TEXT');
+    await addColumn(
+      'notes',
+      "TEXT NOT NULL DEFAULT ''",
+    );
+    await addColumn(
+      'subtotal',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'tax_rate',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'tax_amount',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'discount',
+      'REAL NOT NULL DEFAULT 0',
+    );
+    await addColumn(
+      'posted',
+      'INTEGER NOT NULL DEFAULT 1',
+    );
+
+    final itemColumns = await db.rawQuery(
+      'PRAGMA table_info(sale_items)',
+    );
+    final itemNames = itemColumns
+        .map((row) => row['name'] as String)
+        .toSet();
+
+    if (!itemNames.contains('unit_cost')) {
+      await db.execute(
+        'ALTER TABLE sale_items ADD COLUMN '
+        'unit_cost REAL NOT NULL DEFAULT 0',
+      );
+    }
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sale_returns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        total REAL NOT NULL,
+        reference TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY (sale_id)
+          REFERENCES sales(id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sale_return_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        return_id INTEGER NOT NULL,
+        sale_item_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        qty REAL NOT NULL,
+        unit_price REAL NOT NULL,
+        unit_cost REAL NOT NULL DEFAULT 0,
+        total REAL NOT NULL,
+        FOREIGN KEY (return_id)
+          REFERENCES sale_returns(id)
+          ON DELETE CASCADE,
+        FOREIGN KEY (sale_item_id)
+          REFERENCES sale_items(id),
+        FOREIGN KEY (product_id)
+          REFERENCES products(id)
+      )
+    ''');
+
+    await db.execute(
+      "UPDATE sales SET "
+      "invoice_number = 'INV-' || id "
+      "WHERE invoice_number = ''",
+    );
+    await db.execute(
+      'UPDATE sales SET subtotal = total '
+      'WHERE subtotal = 0',
+    );
+    await db.execute('''
+      UPDATE sale_items
+      SET unit_cost = COALESCE(
+        (
+          SELECT p.cost_price
+          FROM products p
+          WHERE p.id = sale_items.product_id
+        ),
+        0
+      )
+      WHERE unit_cost = 0
+    ''');
+
+    const extraAccounts = [
+      ['110', 'العملاء', 'asset'],
+      ['211', 'ضريبة مخرجات', 'liability'],
+      ['402', 'مردودات المبيعات', 'contra_revenue'],
+    ];
+
+    for (final account in extraAccounts) {
+      await db.insert(
+        'accounts',
+        {
+          'code': account[0],
+          'name': account[1],
+          'type': account[2],
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
   Future<void> _seedVersion3(Database db) async {
     for (var i = 1; i <= 4; i++) {
       await db.insert(
@@ -522,6 +875,9 @@ class AppDatabase {
       ['401', 'المبيعات', 'revenue'],
       ['501', 'تكلفة المبيعات', 'expense'],
       ['510', 'المصروفات التشغيلية', 'expense'],
+      ['110', 'العملاء', 'asset'],
+      ['211', 'ضريبة مخرجات', 'liability'],
+      ['402', 'مردودات المبيعات', 'contra_revenue'],
     ];
 
     for (final account in accounts) {
@@ -595,6 +951,7 @@ class AppDatabase {
       )
     ''');
     await _seedVersion3(db);
+    await _upgradeToVersion4(db);
   }
 
   Future<List<ProductRecord>> getProducts({String query = ''}) async {
@@ -680,6 +1037,7 @@ class AppDatabase {
           'product_id': product.id,
           'qty': item.value,
           'unit_price': product.salePrice,
+          'unit_cost': product.costPrice,
           'total': product.salePrice * item.value,
         });
 
@@ -1179,6 +1537,599 @@ class AppDatabase {
             ConflictAlgorithm.replace,
       );
     }
+  }
+
+
+  Future<List<AccountRecord>> getAccounts() async {
+    final rows = await db.query(
+      'accounts',
+      orderBy: 'code ASC',
+    );
+    return rows.map(AccountRecord.fromMap).toList();
+  }
+
+  Future<List<SalesInvoiceRecord>> getSalesInvoices({
+    String query = '',
+    String status = 'all',
+  }) async {
+    final filters = <String>[];
+    final args = <Object?>[];
+
+    if (status != 'all') {
+      filters.add('s.status = ?');
+      args.add(status);
+    }
+
+    final normalized = query.trim();
+    if (normalized.isNotEmpty) {
+      filters.add(
+        '(s.invoice_number LIKE ? '
+        'OR COALESCE(p.name, \'\') LIKE ?)',
+      );
+      args.add('%' + normalized + '%');
+      args.add('%' + normalized + '%');
+    }
+
+    final where = filters.isEmpty
+        ? ''
+        : 'WHERE ' + filters.join(' AND ');
+
+    final rows = await db.rawQuery('''
+      SELECT
+        s.id,
+        s.invoice_number,
+        s.created_at,
+        s.due_date,
+        s.customer_id,
+        COALESCE(p.name, '') AS customer_name,
+        s.status,
+        s.payment_method,
+        s.subtotal,
+        s.tax_rate,
+        s.tax_amount,
+        s.discount,
+        s.total,
+        s.notes,
+        s.posted,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM sales s
+      LEFT JOIN parties p
+        ON p.id = s.customer_id
+      LEFT JOIN sale_items i
+        ON i.sale_id = s.id
+      $where
+      GROUP BY
+        s.id,
+        s.invoice_number,
+        s.created_at,
+        s.due_date,
+        s.customer_id,
+        p.name,
+        s.status,
+        s.payment_method,
+        s.subtotal,
+        s.tax_rate,
+        s.tax_amount,
+        s.discount,
+        s.total,
+        s.notes,
+        s.posted
+      ORDER BY s.id DESC
+      LIMIT 300
+    ''', args);
+
+    return rows
+        .map(SalesInvoiceRecord.fromMap)
+        .toList();
+  }
+
+  Future<SalesInvoiceRecord?> getSalesInvoice(
+    int saleId,
+  ) async {
+    final rows = await db.rawQuery('''
+      SELECT
+        s.id,
+        s.invoice_number,
+        s.created_at,
+        s.due_date,
+        s.customer_id,
+        COALESCE(p.name, '') AS customer_name,
+        s.status,
+        s.payment_method,
+        s.subtotal,
+        s.tax_rate,
+        s.tax_amount,
+        s.discount,
+        s.total,
+        s.notes,
+        s.posted,
+        COALESCE(SUM(i.qty), 0) AS item_count
+      FROM sales s
+      LEFT JOIN parties p
+        ON p.id = s.customer_id
+      LEFT JOIN sale_items i
+        ON i.sale_id = s.id
+      WHERE s.id = ?
+      GROUP BY s.id
+      LIMIT 1
+    ''', [saleId]);
+
+    if (rows.isEmpty) return null;
+    return SalesInvoiceRecord.fromMap(rows.first);
+  }
+
+  Future<List<SaleItemRecord>> getSaleItems(
+    int saleId,
+  ) async {
+    final rows = await db.rawQuery('''
+      SELECT
+        i.id,
+        i.sale_id,
+        i.product_id,
+        p.name AS product_name,
+        i.qty,
+        i.unit_price,
+        i.unit_cost,
+        i.total,
+        COALESCE(
+          (
+            SELECT SUM(ri.qty)
+            FROM sale_return_items ri
+            WHERE ri.sale_item_id = i.id
+          ),
+          0
+        ) AS returned_qty
+      FROM sale_items i
+      JOIN products p
+        ON p.id = i.product_id
+      WHERE i.sale_id = ?
+      ORDER BY i.id ASC
+    ''', [saleId]);
+
+    return rows.map(SaleItemRecord.fromMap).toList();
+  }
+
+  Future<int> saveSalesInvoice({
+    int? saleId,
+    required List<InvoiceLineInput> lines,
+    int? customerId,
+    required DateTime createdAt,
+    DateTime? dueDate,
+    required String paymentMethod,
+    required String status,
+    String notes = '',
+    double taxRate = 0,
+    double discount = 0,
+  }) async {
+    if (lines.isEmpty) {
+      throw ArgumentError('أضف صنفًا واحدًا على الأقل');
+    }
+    if (taxRate < 0 || discount < 0) {
+      throw ArgumentError('قيم الضريبة والخصم غير صحيحة');
+    }
+
+    return db.transaction((txn) async {
+      if (saleId != null) {
+        final existing = await txn.query(
+          'sales',
+          columns: ['status', 'posted'],
+          where: 'id = ?',
+          whereArgs: [saleId],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          throw StateError('الفاتورة غير موجودة');
+        }
+        final posted =
+            (existing.first['posted'] as num).toInt() == 1;
+        if (posted) {
+          throw StateError(
+            'الفاتورة المرحلة لا تُعدّل. استخدم المرتجع.',
+          );
+        }
+      }
+
+      double subtotal = 0;
+      double totalCost = 0;
+      final products = <int, ProductRecord>{};
+
+      for (final line in lines) {
+        if (line.quantity <= 0 || line.unitPrice < 0) {
+          throw ArgumentError('بيانات الصنف غير صحيحة');
+        }
+        final rows = await txn.query(
+          'products',
+          where: 'id = ?',
+          whereArgs: [line.productId],
+          limit: 1,
+        );
+        if (rows.isEmpty) {
+          throw StateError('أحد الأصناف غير موجود');
+        }
+        final product =
+            ProductRecord.fromMap(rows.first);
+        products[line.productId] = product;
+        subtotal += line.quantity * line.unitPrice;
+        if (product.trackStock) {
+          totalCost += line.quantity * product.costPrice;
+        }
+      }
+
+      final taxableBase =
+          (subtotal - discount).clamp(0, subtotal);
+      final taxAmount = taxableBase * taxRate / 100;
+      final total = taxableBase + taxAmount;
+      final posted = status == 'draft' ? 0 : 1;
+      final values = <String, Object?>{
+        'created_at': createdAt.toIso8601String(),
+        'due_date': dueDate?.toIso8601String(),
+        'customer_id': customerId,
+        'status': status,
+        'payment_method': paymentMethod,
+        'notes': notes.trim(),
+        'subtotal': subtotal,
+        'tax_rate': taxRate,
+        'tax_amount': taxAmount,
+        'discount': discount,
+        'total': total,
+        'posted': posted,
+        'order_type': 'invoice',
+        'table_name': '',
+      };
+
+      int id;
+      if (saleId == null) {
+        id = await txn.insert('sales', {
+          ...values,
+          'invoice_number': '',
+        });
+        await txn.update(
+          'sales',
+          {'invoice_number': 'INV-' + id.toString()},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      } else {
+        id = saleId;
+        await txn.update(
+          'sales',
+          values,
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        await txn.delete(
+          'sale_items',
+          where: 'sale_id = ?',
+          whereArgs: [id],
+        );
+      }
+
+      for (final line in lines) {
+        final product = products[line.productId]!;
+        await txn.insert('sale_items', {
+          'sale_id': id,
+          'product_id': line.productId,
+          'qty': line.quantity,
+          'unit_price': line.unitPrice,
+          'unit_cost': product.costPrice,
+          'total': line.quantity * line.unitPrice,
+        });
+      }
+
+      if (posted == 1) {
+        for (final line in lines) {
+          final product = products[line.productId]!;
+          if (product.trackStock) {
+            if (product.stock < line.quantity) {
+              throw StateError(
+                'المخزون غير كافٍ للصنف: ' +
+                    product.name,
+              );
+            }
+            await txn.rawUpdate(
+              'UPDATE products '
+              'SET stock = stock - ? '
+              'WHERE id = ?',
+              [line.quantity, line.productId],
+            );
+          }
+        }
+
+        final entryId = await _insertJournalEntry(
+          txn,
+          reference: 'INV-' + id.toString(),
+          memo: 'فاتورة مبيعات',
+          createdAt: createdAt.toIso8601String(),
+        );
+
+        final receivableAccount =
+            status == 'paid' ? '101' : '110';
+
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: receivableAccount,
+          debit: total,
+        );
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '401',
+          credit: taxableBase,
+        );
+        if (taxAmount > 0) {
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '211',
+            credit: taxAmount,
+          );
+        }
+        if (totalCost > 0) {
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '501',
+            debit: totalCost,
+          );
+          await _insertJournalLine(
+            txn,
+            entryId: entryId,
+            accountCode: '120',
+            credit: totalCost,
+          );
+        }
+      }
+
+      return id;
+    });
+  }
+
+  Future<int> recordSaleReturn({
+    required int saleId,
+    required Map<int, double> quantitiesBySaleItem,
+    String note = '',
+  }) async {
+    if (quantitiesBySaleItem.isEmpty) {
+      throw ArgumentError('حدد صنفًا للمرتجع');
+    }
+
+    return db.transaction((txn) async {
+      final saleRows = await txn.query(
+        'sales',
+        where: 'id = ? AND posted = 1',
+        whereArgs: [saleId],
+        limit: 1,
+      );
+      if (saleRows.isEmpty) {
+        throw StateError('لا يمكن إرجاع هذه الفاتورة');
+      }
+
+      final sale = saleRows.first;
+      double refundTotal = 0;
+      double returnedCost = 0;
+      final validItems = <Map<String, Object?>>[];
+
+      for (final entry in quantitiesBySaleItem.entries) {
+        if (entry.value <= 0) continue;
+
+        final itemRows = await txn.rawQuery('''
+          SELECT
+            i.id,
+            i.product_id,
+            i.qty,
+            i.unit_price,
+            i.unit_cost,
+            p.track_stock,
+            p.name,
+            COALESCE(
+              (
+                SELECT SUM(ri.qty)
+                FROM sale_return_items ri
+                WHERE ri.sale_item_id = i.id
+              ),
+              0
+            ) AS returned_qty
+          FROM sale_items i
+          JOIN products p
+            ON p.id = i.product_id
+          WHERE i.id = ? AND i.sale_id = ?
+          LIMIT 1
+        ''', [entry.key, saleId]);
+
+        if (itemRows.isEmpty) {
+          throw StateError('بند المرتجع غير موجود');
+        }
+
+        final item = itemRows.first;
+        final soldQty =
+            (item['qty'] as num).toDouble();
+        final alreadyReturned =
+            (item['returned_qty'] as num).toDouble();
+        final available = soldQty - alreadyReturned;
+
+        if (entry.value > available) {
+          throw StateError(
+            'كمية المرتجع أكبر من المسموح للصنف ' +
+                (item['name'] as String),
+          );
+        }
+
+        final unitPrice =
+            (item['unit_price'] as num).toDouble();
+        final unitCost =
+            (item['unit_cost'] as num).toDouble();
+
+        refundTotal += entry.value * unitPrice;
+        returnedCost += entry.value * unitCost;
+
+        validItems.add({
+          'sale_item_id': entry.key,
+          'product_id': item['product_id'],
+          'qty': entry.value,
+          'unit_price': unitPrice,
+          'unit_cost': unitCost,
+          'track_stock': item['track_stock'],
+        });
+      }
+
+      if (validItems.isEmpty || refundTotal <= 0) {
+        throw ArgumentError('حدد كمية مرتجع صحيحة');
+      }
+
+      final now = DateTime.now().toIso8601String();
+      final returnId = await txn.insert(
+        'sale_returns',
+        {
+          'sale_id': saleId,
+          'created_at': now,
+          'total': refundTotal,
+          'reference': '',
+          'note': note.trim(),
+        },
+      );
+      final reference =
+          'RET-' + returnId.toString();
+      await txn.update(
+        'sale_returns',
+        {'reference': reference},
+        where: 'id = ?',
+        whereArgs: [returnId],
+      );
+
+      for (final item in validItems) {
+        await txn.insert(
+          'sale_return_items',
+          {
+            'return_id': returnId,
+            'sale_item_id': item['sale_item_id'],
+            'product_id': item['product_id'],
+            'qty': item['qty'],
+            'unit_price': item['unit_price'],
+            'unit_cost': item['unit_cost'],
+            'total': (item['qty'] as double) *
+                (item['unit_price'] as double),
+          },
+        );
+
+        if ((item['track_stock'] as num).toInt() == 1) {
+          await txn.rawUpdate(
+            'UPDATE products '
+            'SET stock = stock + ? '
+            'WHERE id = ?',
+            [item['qty'], item['product_id']],
+          );
+        }
+      }
+
+      final entryId = await _insertJournalEntry(
+        txn,
+        reference: reference,
+        memo: 'مرتجع مبيعات',
+        createdAt: now,
+      );
+
+      await _insertJournalLine(
+        txn,
+        entryId: entryId,
+        accountCode: '402',
+        debit: refundTotal,
+      );
+
+      final originalStatus =
+          (sale['status'] as String?) ?? 'paid';
+      await _insertJournalLine(
+        txn,
+        entryId: entryId,
+        accountCode:
+            originalStatus == 'paid' ? '101' : '110',
+        credit: refundTotal,
+      );
+
+      if (returnedCost > 0) {
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '120',
+          debit: returnedCost,
+        );
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: '501',
+          credit: returnedCost,
+        );
+      }
+
+      return returnId;
+    });
+  }
+
+  Future<List<SaleReturnSummaryRecord>>
+      getSaleReturns() async {
+    final rows = await db.query(
+      'sale_returns',
+      orderBy: 'id DESC',
+      limit: 200,
+    );
+    return rows
+        .map(SaleReturnSummaryRecord.fromMap)
+        .toList();
+  }
+
+  Future<int> recordManualJournal({
+    required DateTime date,
+    required String memo,
+    required List<JournalInputLine> lines,
+  }) async {
+    final validLines = lines
+        .where(
+          (line) => line.debit > 0 || line.credit > 0,
+        )
+        .toList();
+
+    if (validLines.length < 2) {
+      throw ArgumentError('القيد يحتاج سطرين على الأقل');
+    }
+
+    final totalDebit = validLines.fold<double>(
+      0,
+      (sum, line) => sum + line.debit,
+    );
+    final totalCredit = validLines.fold<double>(
+      0,
+      (sum, line) => sum + line.credit,
+    );
+
+    if ((totalDebit - totalCredit).abs() > 0.001) {
+      throw ArgumentError('القيد غير متوازن');
+    }
+
+    return db.transaction((txn) async {
+      final reference = 'JV-' +
+          DateTime.now()
+              .millisecondsSinceEpoch
+              .toString();
+
+      final entryId = await _insertJournalEntry(
+        txn,
+        reference: reference,
+        memo: memo.trim(),
+        createdAt: date.toIso8601String(),
+      );
+
+      for (final line in validLines) {
+        await _insertJournalLine(
+          txn,
+          entryId: entryId,
+          accountCode: line.accountCode,
+          debit: line.debit,
+          credit: line.credit,
+        );
+      }
+
+      return entryId;
+    });
   }
 
   Future<int> _insertJournalEntry(
