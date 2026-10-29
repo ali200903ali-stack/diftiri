@@ -145,8 +145,8 @@ void main() {
           await AppDatabase.instance.getAccounts();
       expect(accounts.length, greaterThanOrEqualTo(2));
 
-      expect(
-        () => AppDatabase.instance.recordManualJournal(
+      await expectLater(
+        AppDatabase.instance.recordManualJournal(
           date: DateTime.now(),
           memo: 'قيد غير متوازن',
           lines: [
