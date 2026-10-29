@@ -1168,19 +1168,17 @@ class AppDatabase {
       'currency': currency,
     };
 
-    await db.transaction((txn) async {
-      for (final entry in values.entries) {
-        await txn.insert(
-          'app_settings',
-          {
-            'key': entry.key,
-            'value': entry.value,
-          },
-          conflictAlgorithm:
-              ConflictAlgorithm.replace,
-        );
-      }
-    });
+    for (final entry in values.entries) {
+      await db.insert(
+        'app_settings',
+        {
+          'key': entry.key,
+          'value': entry.value,
+        },
+        conflictAlgorithm:
+            ConflictAlgorithm.replace,
+      );
+    }
   }
 
   Future<int> _insertJournalEntry(
