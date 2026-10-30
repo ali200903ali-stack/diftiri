@@ -88,6 +88,8 @@ jobs:
       - run: flutter analyze --no-fatal-infos
       - name: Test database
         run: timeout 60s flutter test test/database_test.dart -r expanded
+      - name: Test production readiness flows
+        run: timeout 180s flutter test test/production_readiness_test.dart -r expanded
       - name: Test dashboard phone layout
         run: timeout 60s flutter test test/widget_test.dart -r expanded
       - name: Test module phone layouts
