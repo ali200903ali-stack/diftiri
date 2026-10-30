@@ -1,9 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
-import '../../core/subscription/subscription_gate.dart';
 import '../../core/theme/app_theme.dart';
 import '../modules/module_router.dart';
 
@@ -11,7 +8,8 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() =>
+      _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
@@ -23,48 +21,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String activityType = 'grocery';
 
   static const modules = <_Module>[
-    _Module('المبيعات', Icons.receipt_long_rounded, AppColors.navy),
-    _Module('المشتريات', Icons.shopping_bag_rounded, AppColors.emerald),
+    _Module(
+      'المبيعات',
+      Icons.receipt_long_rounded,
+      _ModuleTone.navy,
+    ),
+    _Module(
+      'المشتريات',
+      Icons.shopping_bag_rounded,
+      _ModuleTone.emerald,
+    ),
     _Module(
       'المخزون',
       Icons.inventory_2_rounded,
-      Color(0xFFE7FAF5),
-      darkIcon: AppColors.emeraldDark,
+      _ModuleTone.mint,
     ),
     _Module(
       'العملاء',
       Icons.person_rounded,
-      Color(0xFFE8F8F4),
-      darkIcon: AppColors.emeraldDark,
+      _ModuleTone.mint,
     ),
-    _Module('الموردون', Icons.local_shipping_rounded, AppColors.navy),
-    _Module('الحسابات', Icons.calculate_rounded, AppColors.emerald),
+    _Module(
+      'الموردون',
+      Icons.local_shipping_rounded,
+      _ModuleTone.navy,
+    ),
+    _Module(
+      'الحسابات',
+      Icons.calculate_rounded,
+      _ModuleTone.emerald,
+    ),
     _Module(
       'الصندوق',
       Icons.account_balance_wallet_rounded,
-      AppColors.emerald,
+      _ModuleTone.emerald,
     ),
     _Module(
       'البنوك',
       Icons.account_balance_rounded,
-      Color(0xFFEAF8F4),
-      darkIcon: AppColors.emeraldDark,
+      _ModuleTone.mint,
     ),
-    _Module('المصروفات', Icons.request_quote_rounded, AppColors.navy),
+    _Module(
+      'المصروفات',
+      Icons.request_quote_rounded,
+      _ModuleTone.navy,
+    ),
     _Module(
       'القيود',
-      Icons.menu_book_rounded,
-      Color(0xFFE8F8F4),
-      darkIcon: AppColors.navy,
+      Icons.edit_note_rounded,
+      _ModuleTone.mint,
     ),
-    _Module('التقارير', Icons.bar_chart_rounded, AppColors.emerald),
-    _Module('الإعدادات', Icons.settings_rounded, AppColors.navy),
+    _Module(
+      'التقارير',
+      Icons.bar_chart_rounded,
+      _ModuleTone.emerald,
+    ),
+    _Module(
+      'الإعدادات',
+      Icons.settings_rounded,
+      _ModuleTone.navy,
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
-    statsFuture = AppDatabase.instance.getDashboardStats();
+    statsFuture =
+        AppDatabase.instance.getDashboardStats();
     _loadActivityType();
   }
 
@@ -84,20 +107,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  void refreshStats() {
+  void _refreshStats() {
     setState(() {
-      statsFuture = AppDatabase.instance.getDashboardStats();
+      statsFuture =
+          AppDatabase.instance.getDashboardStats();
     });
   }
 
-  Future<void> openModule(String title) async {
+  Future<void> _openModule(String title) async {
     await ModuleRouter.open(context, title);
-    if (mounted) {
-      refreshStats();
-    }
+    if (!mounted) return;
+    _refreshStats();
+    await _loadActivityType();
   }
 
-  void handleBottomAction(int index) {
+  void _handleBottomAction(int index) {
     switch (index) {
       case 0:
         FocusScope.of(context).unfocus();
@@ -107,21 +131,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         break;
       case 2:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا توجد إشعارات جديدة')),
+          const SnackBar(
+            content: Text('لا توجد إشعارات جديدة'),
+          ),
         );
         break;
       case 3:
-        openModule('الإعدادات');
+        _openModule('الإعدادات');
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final allowed = SubscriptionGate.canUseApp(
-      hasActiveSubscription: false,
-    );
-
     final allModules = <_Module>[
       ...modules,
       if (activityType == 'restaurant' ||
@@ -129,165 +151,185 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const _Module(
           'الطاولات',
           Icons.table_restaurant_rounded,
-          Color(0xFFE8F8F4),
-          darkIcon: AppColors.emeraldDark,
+          _ModuleTone.mint,
         ),
     ];
 
-    final normalizedQuery = query.trim();
-    final visibleModules = normalizedQuery.isEmpty
+    final normalized = query.trim();
+    final visibleModules = normalized.isEmpty
         ? allModules
         : allModules
             .where(
-              (module) =>
-                  module.title.contains(normalizedQuery),
+              (item) => item.title.contains(normalized),
             )
             .toList();
 
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 900;
+
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final desktop = width >= 900;
-            final compactPhone = width < 370;
-            final horizontalPadding = desktop ? 40.0 : 16.0;
-            final columnCount = desktop ? 6 : (width < 340 ? 2 : 3);
-            final gap = desktop ? 18.0 : 12.0;
-
-            return Row(
-              children: [
-                if (desktop) const _DesktopRail(),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      refreshStats();
-                    },
-                    child: CustomScrollView(
-                      key: const Key('dashboard-scroll'),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverPadding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            desktop ? 24 : 12,
-                            horizontalPadding,
-                            18,
-                          ),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
-                              _BrandHeader(
-                                compact: !desktop,
-                                availableWidth:
-                                    math.max(220.0, width - horizontalPadding * 2),
-                              ),
-                              const SizedBox(height: 8),
-                              Center(
-                                child: _TrialBadge(allowed: allowed),
-                              ),
-                              const SizedBox(height: 14),
-                              TextField(
-                                key: const Key('dashboard-search'),
-                                controller: searchController,
-                                focusNode: searchFocusNode,
-                                onChanged: (value) {
-                                  setState(() {
-                                    query = value;
-                                  });
-                                },
-                                textInputAction: TextInputAction.search,
-                                decoration: const InputDecoration(
-                                  hintText: 'ابحث في النظام',
-                                  prefixIcon: Icon(
-                                    Icons.search_rounded,
-                                    size: 26,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              FutureBuilder<DashboardStats>(
-                                future: statsFuture,
-                                builder: (context, snapshot) {
-                                  final stats = snapshot.data ??
-                                      const DashboardStats(
-                                        salesToday: 0,
-                                        expensesToday: 0,
-                                        cashBalance: 0,
-                                        lowStockCount: 0,
-                                      );
-                                  return _KpiRow(
-                                    stats: stats,
-                                    compact: compactPhone,
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 20),
-                              const Text(
+        child: Center(
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(maxWidth: 1180),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                _refreshStats();
+                await _loadActivityType();
+              },
+              child: CustomScrollView(
+                key: const Key('dashboard-scroll'),
+                physics:
+                    const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      desktop ? 34 : 14,
+                      desktop ? 22 : 8,
+                      desktop ? 34 : 14,
+                      0,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _BrandHeader(desktop: desktop),
+                        SizedBox(
+                          height: desktop ? 14 : 6,
+                        ),
+                        _SearchBar(
+                          controller: searchController,
+                          focusNode: searchFocusNode,
+                          onChanged: (value) {
+                            setState(() => query = value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        FutureBuilder<DashboardStats>(
+                          future: statsFuture,
+                          builder: (context, snapshot) {
+                            final stats =
+                                snapshot.data ??
+                                const DashboardStats(
+                                  salesToday: 0,
+                                  expensesToday: 0,
+                                  cashBalance: 0,
+                                  lowStockCount: 0,
+                                );
+                            return _KpiRow(stats: stats);
+                          },
+                        ),
+                        const SizedBox(height: 22),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
                                 'القائمة الرئيسية',
                                 style: TextStyle(
-                                  fontSize: 23,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColors.text,
+                                  fontSize: 22,
+                                  fontWeight:
+                                      FontWeight.w900,
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                            ]),
-                          ),
-                        ),
-                        if (visibleModules.isEmpty)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: Center(
-                              child: Text(
-                                'لا يوجد قسم مطابق للبحث',
-                                style: TextStyle(
+                            ),
+                            if (visibleModules.length !=
+                                allModules.length)
+                              Text(
+                                visibleModules.length
+                                        .toString() +
+                                    ' نتائج',
+                                style: const TextStyle(
                                   color: AppColors.muted,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight:
+                                      FontWeight.w700,
                                 ),
                               ),
-                            ),
-                          )
-                        else
-                          SliverPadding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                            ),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: columnCount,
-                                mainAxisSpacing: gap,
-                                crossAxisSpacing: gap,
-                                childAspectRatio: desktop ? 1.02 : (width < 370 ? .76 : .82),
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) => _ModuleCard(
-                                  module: visibleModules[index],
-                                  onTap: () =>
-                                      openModule(visibleModules[index].title),
-                                ),
-                                childCount: visibleModules.length,
-                              ),
-                            ),
-                          ),
-                        const SliverToBoxAdapter(
-                          child: SizedBox(height: 28),
+                          ],
                         ),
-                      ],
+                        const SizedBox(height: 12),
+                      ]),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                  if (visibleModules.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Text(
+                          'لا يوجد قسم مطابق للبحث',
+                          style: TextStyle(
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        desktop ? 34 : 14,
+                        0,
+                        desktop ? 34 : 14,
+                        26,
+                      ),
+                      sliver: SliverLayoutBuilder(
+                        builder: (
+                          context,
+                          constraints,
+                        ) {
+                          final cross =
+                              constraints
+                                  .crossAxisExtent;
+                          final columns = cross >= 1000
+                              ? 6
+                              : cross >= 650
+                                  ? 4
+                                  : 3;
+                          final gap =
+                              cross < 350 ? 8.0 : 12.0;
+
+                          return SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              crossAxisSpacing: gap,
+                              mainAxisSpacing: 14,
+                              childAspectRatio:
+                                  columns >= 4
+                                      ? .94
+                                      : cross < 350
+                                          ? .72
+                                          : .78,
+                            ),
+                            delegate:
+                                SliverChildBuilderDelegate(
+                              (context, index) {
+                                final module =
+                                    visibleModules[index];
+                                return _ModuleCard(
+                                  module: module,
+                                  onTap: () => _openModule(
+                                    module.title,
+                                  ),
+                                );
+                              },
+                              childCount:
+                                  visibleModules.length,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      bottomNavigationBar: MediaQuery.sizeOf(context).width >= 900
+      bottomNavigationBar: desktop
           ? null
           : NavigationBar(
-              height: 68,
               selectedIndex: 0,
-              onDestinationSelected: handleBottomAction,
+              onDestinationSelected:
+                  _handleBottomAction,
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.home_rounded),
@@ -298,11 +340,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: 'بحث',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.notifications_none_rounded),
+                  icon: Icon(
+                    Icons.notifications_none_rounded,
+                  ),
                   label: 'إشعارات',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.person_outline_rounded),
+                  icon: Icon(
+                    Icons.person_outline_rounded,
+                  ),
                   label: 'حسابي',
                 ),
               ],
@@ -312,24 +358,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({
-    required this.compact,
-    required this.availableWidth,
-  });
+  const _BrandHeader({required this.desktop});
 
-  final bool compact;
-  final double availableWidth;
+  final bool desktop;
 
   @override
   Widget build(BuildContext context) {
-    final maxWidth = compact
-        ? math.min(availableWidth * .82, 340.0)
-        : math.min(availableWidth, 430.0);
-
     return Center(
       child: SizedBox(
-        width: maxWidth,
-        height: compact ? 92 : 130,
+        width: desktop ? 460 : 320,
+        height: desktop ? 118 : 94,
         child: Image.asset(
           'assets/branding/diftiri_logo.jpg',
           fit: BoxFit.contain,
@@ -340,57 +378,53 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _TrialBadge extends StatelessWidget {
-  const _TrialBadge({required this.allowed});
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+  });
 
-  final bool allowed;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFE9F9F5),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFCDEFE7)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.science_rounded,
-            size: 17,
-            color: AppColors.emeraldDark,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              allowed
-                  ? 'نسخة تجريبية'
-                  : 'يلزم اشتراك نشط',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.emeraldDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 12.5,
-              ),
-            ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10123E63),
+            blurRadius: 18,
+            offset: Offset(0, 7),
           ),
         ],
+      ),
+      child: TextField(
+        key: const Key('dashboard-search'),
+        controller: controller,
+        focusNode: focusNode,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: const InputDecoration(
+          hintText: 'ابحث في النظام',
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 28,
+            color: AppColors.navy,
+          ),
+        ),
       ),
     );
   }
 }
 
 class _KpiRow extends StatelessWidget {
-  const _KpiRow({
-    required this.stats,
-    required this.compact,
-  });
+  const _KpiRow({required this.stats});
 
   final DashboardStats stats;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -399,20 +433,18 @@ class _KpiRow extends StatelessWidget {
         Expanded(
           child: _KpiCard(
             label: 'مبيعات اليوم',
-            value: stats.salesToday.toStringAsFixed(0),
+            value: stats.salesToday,
             icon: Icons.bar_chart_rounded,
-            tint: const Color(0xFFEAF6FC),
-            compact: compact,
+            tint: AppColors.ice,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _KpiCard(
             label: 'الرصيد النقدي',
-            value: stats.cashBalance.toStringAsFixed(0),
-            icon: Icons.monetization_on_rounded,
-            tint: const Color(0xFFE7FAF5),
-            compact: compact,
+            value: stats.cashBalance,
+            icon: Icons.stacked_coins_rounded,
+            tint: AppColors.mint,
           ),
         ),
       ],
@@ -426,68 +458,91 @@ class _KpiCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.tint,
-    required this.compact,
   });
 
   final String label;
-  final String value;
+  final double value;
   final IconData icon;
   final Color tint;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final narrow =
+        MediaQuery.sizeOf(context).width < 360;
+
     return Container(
-      constraints: const BoxConstraints(minHeight: 92),
-      padding: EdgeInsets.all(compact ? 11 : 13),
+      height: narrow ? 92 : 104,
+      padding: EdgeInsets.all(narrow ? 10 : 13),
       decoration: BoxDecoration(
         color: tint,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(
+          color: Colors.white,
+          width: 1.5,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12123E63),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: compact ? 38 : 44,
-            height: compact ? 38 : 44,
+            width: narrow ? 42 : 50,
+            height: narrow ? 42 : 50,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius:
+                  BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x17000000),
+                  blurRadius: 14,
+                  offset: Offset(0, 6),
+                ),
+              ],
             ),
             child: Icon(
               icon,
               color: AppColors.emeraldDark,
-              size: compact ? 24 : 27,
+              size: narrow ? 25 : 30,
             ),
           ),
-          SizedBox(width: compact ? 7 : 9),
+          SizedBox(width: narrow ? 7 : 10),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
+                  alignment:
+                      Alignment.centerRight,
                   child: Text(
                     label,
                     style: TextStyle(
-                      fontSize: compact ? 12 : 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.text,
+                      fontSize: narrow ? 12 : 14,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
+                  alignment:
+                      Alignment.centerRight,
                   child: Text(
-                    value,
+                    value.toStringAsFixed(0),
                     style: TextStyle(
-                      fontSize: compact ? 21 : 24,
+                      color: AppColors.navyDark,
+                      fontSize: narrow ? 21 : 27,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.text,
+                      letterSpacing: .3,
                     ),
                   ),
                 ),
@@ -511,67 +566,122 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final darkBackground =
-        module.color == AppColors.navy ||
-        module.color == AppColors.emerald;
-    final iconColor =
-        module.darkIcon ??
-        (darkBackground ? Colors.white : AppColors.navy);
+    final colors = switch (module.tone) {
+      _ModuleTone.navy => const [
+          Color(0xFF174F78),
+          AppColors.navyDark,
+        ],
+      _ModuleTone.emerald => const [
+          Color(0xFF13C29C),
+          Color(0xFF07836A),
+        ],
+      _ModuleTone.mint => const [
+          Color(0xFFF3FFFC),
+          Color(0xFFDDF8F1),
+        ],
+    };
+
+    final light =
+        module.tone == _ModuleTone.mint;
+    final iconColor = light
+        ? AppColors.emeraldDark
+        : Colors.white;
+    final width =
+        MediaQuery.sizeOf(context).width;
+    final iconBox = width < 350 ? 76.0 : 92.0;
 
     return Semantics(
       button: true,
       label: module.title,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
         child: Column(
+          mainAxisAlignment:
+              MainAxisAlignment.start,
           children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: module.color,
-                  borderRadius: BorderRadius.circular(22),
-                  border: darkBackground
-                      ? null
-                      : Border.all(color: AppColors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.navy.withValues(alpha: .07),
-                      blurRadius: 14,
-                      offset: const Offset(0, 7),
+            Container(
+              width: iconBox,
+              height: iconBox,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: colors,
+                ),
+                borderRadius:
+                    BorderRadius.circular(25),
+                border: Border.all(
+                  color: light
+                      ? Colors.white
+                      : Colors.white.withValues(
+                          alpha: .18,
+                        ),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (light
+                            ? AppColors.emerald
+                            : colors.last)
+                        .withValues(alpha: .24),
+                    blurRadius: 18,
+                    offset: const Offset(0, 9),
+                  ),
+                  const BoxShadow(
+                    color: Color(0x33FFFFFF),
+                    blurRadius: 2,
+                    offset: Offset(-1, -1),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 10,
+                    right: 12,
+                    child: Container(
+                      width: 18,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(
+                          alpha: light ? .9 : .12,
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(999),
+                      ),
                     ),
-                  ],
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final iconSize = math.min(
-                      46.0,
-                      math.max(34.0, constraints.maxWidth * .42),
-                    );
-                    return Icon(
-                      module.icon,
-                      size: iconSize,
-                      color: iconColor,
-                    );
-                  },
-                ),
+                  ),
+                  Icon(
+                    module.icon,
+                    size: iconBox * .50,
+                    color: iconColor,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(
+                          alpha: light ? .09 : .22,
+                        ),
+                        blurRadius: 7,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 7),
-            SizedBox(
-              height: 22,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  module.title,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.text,
-                  ),
+            const SizedBox(height: 9),
+            Flexible(
+              child: Text(
+                module.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow:
+                    TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: width < 350 ? 12 : 14.5,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.text,
                 ),
               ),
             ),
@@ -582,72 +692,20 @@ class _ModuleCard extends StatelessWidget {
   }
 }
 
-class _DesktopRail extends StatelessWidget {
-  const _DesktopRail();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 94,
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _RailIcon(Icons.home_rounded, active: true),
-          _RailIcon(Icons.search_rounded),
-          _RailIcon(Icons.notifications_none_rounded),
-          _RailIcon(Icons.person_outline_rounded),
-        ],
-      ),
-    );
-  }
-}
-
-class _RailIcon extends StatelessWidget {
-  const _RailIcon(this.icon, {this.active = false});
-
-  final IconData icon;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Container(
-        width: 54,
-        height: 54,
-        decoration: BoxDecoration(
-          color: active
-              ? const Color(0xFFE8F8F4)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Icon(
-          icon,
-          color: active
-              ? AppColors.emeraldDark
-              : AppColors.muted,
-        ),
-      ),
-    );
-  }
+enum _ModuleTone {
+  navy,
+  emerald,
+  mint,
 }
 
 class _Module {
   const _Module(
     this.title,
     this.icon,
-    this.color, {
-    this.darkIcon,
-  });
+    this.tone,
+  );
 
   final String title;
   final IconData icon;
-  final Color color;
-  final Color? darkIcon;
+  final _ModuleTone tone;
 }
