@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../core/database/app_database.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class InvoiceDocumentScreen extends StatefulWidget {
   const InvoiceDocumentScreen({
@@ -664,8 +665,13 @@ class _InvoiceDocumentScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('عرض وطباعة ' + current.title),
+      appBar: DiftiriAppBar(
+        title: 'عرض وطباعة ' + current.title,
+        subtitle: 'PDF، مشاركة، A4 أو طباعة حرارية',
+        icon: Icons.picture_as_pdf_rounded,
+        tone: current.kind == 'sale'
+            ? DiftiriTone.navy
+            : DiftiriTone.emerald,
         actions: [
           IconButton(
             tooltip: 'تصدير PDF',
