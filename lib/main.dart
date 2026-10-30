@@ -4,6 +4,7 @@ import 'app.dart';
 import 'core/database/app_database.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_ui_preferences.dart';
+import 'core/ui/diftiri_ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,13 +86,10 @@ class _StartupLoading extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 260,
-                height: 105,
-                child: Image.asset(
-                  'assets/branding/diftiri_logo.jpg',
-                  fit: BoxFit.contain,
-                ),
+              const DiftiriBrandLogo(
+                width: 220,
+                height: 82,
+                alignment: Alignment.center,
               ),
               const SizedBox(height: 20),
               const CircularProgressIndicator(),
@@ -146,13 +144,10 @@ class _StartupFailure extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    SizedBox(
-                      width: 260,
-                      height: 96,
-                      child: Image.asset(
-                        'assets/branding/diftiri_logo.jpg',
-                        fit: BoxFit.contain,
-                      ),
+                    const DiftiriBrandLogo(
+                      width: 220,
+                      height: 82,
+                      alignment: Alignment.center,
                     ),
                     const SizedBox(height: 14),
                     Container(
