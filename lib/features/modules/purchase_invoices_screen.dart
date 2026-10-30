@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'purchase_invoice_editor_screen.dart';
 
 class PurchaseInvoicesScreen extends StatefulWidget {
@@ -61,8 +62,11 @@ class _PurchaseInvoicesScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('فواتير المشتريات'),
+      appBar: const DiftiriAppBar(
+        title: 'فواتير المشتريات',
+        subtitle: 'إدارة فواتير الموردين والطباعة',
+        icon: Icons.shopping_bag_rounded,
+        tone: DiftiriTone.emerald,
       ),
       floatingActionButton:
           FloatingActionButton.extended(
