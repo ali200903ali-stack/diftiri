@@ -513,13 +513,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: visible.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'لا توجد أصناف مطابقة',
-                          style: TextStyle(
-                            color: AppColors.muted,
-                          ),
-                        ),
+                    ? const DiftiriEmptyState(
+                        icon: Icons.inventory_2_rounded,
+                        title: 'لا توجد أصناف مطابقة',
+                        message: 'جرّب تغيير البحث أو الفلتر، أو أضف صنفًا جديدًا.',
                       )
                     : ListView.separated(
                         key: const Key(
@@ -701,19 +698,10 @@ class _InventoryItem extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEAF3FA),
-                  borderRadius:
-                      BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.inventory_2_rounded,
-                  color: AppColors.navy,
-                ),
+              const DiftiriIconBox(
+                icon: Icons.inventory_2_rounded,
+                tone: DiftiriTone.mint,
+                size: 56,
               ),
               const SizedBox(width: 12),
               Expanded(
