@@ -443,7 +443,7 @@ class _KpiRow extends StatelessWidget {
           child: _KpiCard(
             label: 'الرصيد النقدي',
             value: stats.cashBalance,
-            icon: Icons.stacked_coins_rounded,
+            icon: Icons.monetization_on_rounded,
             tint: AppColors.mint,
           ),
         ),
