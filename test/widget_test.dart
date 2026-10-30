@@ -248,6 +248,18 @@ void main() {
         find.byKey(const Key('dashboard-search')),
       );
 
+      expect(
+        find.byKey(const Key('dashboard-search')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.drag(
+        find.byKey(const Key('dashboard-scroll')),
+        const Offset(0, -360),
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('المبيعات'), findsOneWidget);
       expect(find.text('المشتريات'), findsOneWidget);
       expect(tester.takeException(), isNull);
