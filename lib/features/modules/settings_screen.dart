@@ -513,7 +513,7 @@ class _ScaleSetting extends StatelessWidget {
           ],
         ),
         Slider(
-          value: value.clamp(min, max),
+          value: value.clamp(min, max).toDouble(),
           min: min,
           max: max,
           divisions: 8,
