@@ -30,3 +30,11 @@ flutter:
   assets:
     - assets/branding/diftiri_logo.jpg
     - assets/fonts/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo.ttf
+          weight: 400
+        - asset: assets/fonts/Cairo.ttf
+          weight: 700
