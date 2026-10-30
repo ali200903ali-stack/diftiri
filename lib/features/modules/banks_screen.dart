@@ -187,22 +187,10 @@ class _BanksScreenState extends State<BanksScreen> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color:
-                            const Color(0xFFE8F8F4),
-                        borderRadius:
-                            BorderRadius.circular(
-                          16,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_rounded,
-                        color:
-                            AppColors.emeraldDark,
-                      ),
+                    const DiftiriIconBox(
+                      icon: Icons.account_balance_rounded,
+                      tone: DiftiriTone.mint,
+                      size: 52,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
