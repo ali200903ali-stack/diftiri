@@ -1,5 +1,6 @@
 import 'package:diftiri/app.dart';
 import 'package:diftiri/core/database/app_database.dart';
+import 'package:diftiri/core/ui/diftiri_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -165,4 +166,92 @@ void main() {
       await disposeApp(tester);
     },
   );
+
+  testWidgets(
+    'brand logo is small, crisp widget and anchored to the left',
+    (tester) async {
+      await pumpAtSize(
+        tester,
+        const Size(390, 844),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byType(DiftiriBrandLogo),
+      );
+
+      final logoFinder = find.byType(DiftiriBrandLogo);
+      expect(logoFinder, findsOneWidget);
+
+      final rect = tester.getRect(logoFinder);
+      expect(rect.left, lessThan(40));
+      expect(rect.width, lessThanOrEqualTo(180));
+      expect(rect.height, lessThanOrEqualTo(70));
+
+      final icons = tester
+          .widgetList<DiftiriIconBox>(
+            find.byType(DiftiriIconBox),
+          )
+          .toList();
+      final tones = icons.map((icon) => icon.tone).toSet();
+      expect(
+        tones.length,
+        greaterThanOrEqualTo(5),
+        reason:
+            'الواجهة الرئيسية يجب أن تستخدم مجموعة ألوان متنوعة للأيقونات',
+      );
+      expect(tester.takeException(), isNull);
+
+      await disposeApp(tester);
+    },
+  );
+
+  testWidgets(
+    'dashboard remains stable on compact 320x568 phone',
+    (tester) async {
+      await pumpAtSize(
+        tester,
+        const Size(320, 568),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(const Key('dashboard-search')),
+      );
+
+      expect(find.text('المبيعات'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.drag(
+        find.byKey(const Key('dashboard-scroll')),
+        const Offset(0, -500),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await disposeApp(tester);
+    },
+  );
+
+  testWidgets(
+    'dashboard remains stable in 844x390 landscape',
+    (tester) async {
+      await pumpAtSize(
+        tester,
+        const Size(844, 390),
+      );
+
+      await pumpUntil(
+        tester,
+        find.byKey(const Key('dashboard-search')),
+      );
+
+      expect(find.text('المبيعات'), findsOneWidget);
+      expect(find.text('المشتريات'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await disposeApp(tester);
+    },
+  );
+
 }
