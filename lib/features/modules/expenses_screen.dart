@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -64,7 +65,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('المصروفات')),
+      appBar: const DiftiriAppBar(
+        title: 'المصروفات',
+        subtitle: 'تسجيل وتصنيف ومتابعة المصروفات',
+        icon: Icons.request_quote_rounded,
+        tone: DiftiriTone.navy,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final phone = constraints.maxWidth < 600;
