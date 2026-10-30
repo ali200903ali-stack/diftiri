@@ -295,14 +295,24 @@ void main() {
       await pumpUntil(
         tester,
         find.byKey(
-          const Key('journal-lines-list'),
+          const Key('account-tree-list'),
         ),
       );
 
       expect(
-        find.text('الحسابات والقيود'),
+        find.text('شجرة الحسابات'),
+        findsWidgets,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('القيود اليومية'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('journal-lines-list')),
         findsOneWidget,
       );
+      expect(tester.takeException(), isNull);
 
       await disposeScreen(tester);
     },
