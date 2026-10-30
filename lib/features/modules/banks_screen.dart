@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class BanksScreen extends StatefulWidget {
   const BanksScreen({super.key});
@@ -123,8 +124,11 @@ class _BanksScreenState extends State<BanksScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('البنوك'),
+      appBar: const DiftiriAppBar(
+        title: 'البنوك',
+        subtitle: 'الحسابات البنكية والأرصدة',
+        icon: Icons.account_balance_rounded,
+        tone: DiftiriTone.mint,
       ),
       floatingActionButton:
           FloatingActionButton.extended(
