@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import '../modules/module_router.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -326,32 +327,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       bottomNavigationBar: desktop
           ? null
-          : NavigationBar(
+          : DiftiriBottomNav(
               selectedIndex: 0,
-              onDestinationSelected:
-                  _handleBottomAction,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_rounded),
-                  label: 'الرئيسية',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.search_rounded),
-                  label: 'بحث',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.notifications_none_rounded,
-                  ),
-                  label: 'إشعارات',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.person_outline_rounded,
-                  ),
-                  label: 'حسابي',
-                ),
-              ],
+              onSelected: _handleBottomAction,
             ),
     );
   }
@@ -365,13 +343,19 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: SizedBox(
-        width: desktop ? 460 : 320,
-        height: desktop ? 118 : 94,
-        child: Image.asset(
-          'assets/branding/diftiri_logo.jpg',
-          fit: BoxFit.contain,
-          semanticLabel: 'دفتري المحاسبي',
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: desktop ? 4 : 0,
+          bottom: desktop ? 2 : 0,
+        ),
+        child: SizedBox(
+          width: desktop ? 430 : 286,
+          height: desktop ? 112 : 84,
+          child: Image.asset(
+            'assets/branding/diftiri_logo.jpg',
+            fit: BoxFit.contain,
+            semanticLabel: 'دفتري المحاسبي',
+          ),
         ),
       ),
     );
@@ -600,75 +584,15 @@ class _ModuleCard extends StatelessWidget {
           mainAxisAlignment:
               MainAxisAlignment.start,
           children: [
-            Container(
-              width: iconBox,
-              height: iconBox,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: colors,
-                ),
-                borderRadius:
-                    BorderRadius.circular(25),
-                border: Border.all(
-                  color: light
-                      ? Colors.white
-                      : Colors.white.withValues(
-                          alpha: .18,
-                        ),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (light
-                            ? AppColors.emerald
-                            : colors.last)
-                        .withValues(alpha: .24),
-                    blurRadius: 18,
-                    offset: const Offset(0, 9),
-                  ),
-                  const BoxShadow(
-                    color: Color(0x33FFFFFF),
-                    blurRadius: 2,
-                    offset: Offset(-1, -1),
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned(
-                    top: 10,
-                    right: 12,
-                    child: Container(
-                      width: 18,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(
-                          alpha: light ? .9 : .12,
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    module.icon,
-                    size: iconBox * .50,
-                    color: iconColor,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(
-                          alpha: light ? .09 : .22,
-                        ),
-                        blurRadius: 7,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            DiftiriIconBox(
+              icon: module.icon,
+              tone: switch (module.tone) {
+                _ModuleTone.navy => DiftiriTone.navy,
+                _ModuleTone.emerald => DiftiriTone.emerald,
+                _ModuleTone.mint => DiftiriTone.mint,
+              },
+              size: iconBox,
+              iconSize: iconBox * .50,
             ),
             const SizedBox(height: 9),
             Flexible(
