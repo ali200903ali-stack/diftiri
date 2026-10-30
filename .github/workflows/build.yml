@@ -15,36 +15,33 @@ concurrency:
 
 jobs:
   web:
-    name: Web PWA
+    name: Web / HTML
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate interactive web app
-        run: |
-          gunzip -c web/index.html.gz > /tmp/index.html
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          html = Path('/tmp/index.html').read_text(encoding='utf-8')
-          scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
-          Path('/tmp/diftiri-app.js').write_text('\n'.join(scripts), encoding='utf-8')
-          assert '<html' in html.lower()
-          assert scripts, 'No inline application script found'
-          PY
-          node --check /tmp/diftiri-app.js
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
 
-      - name: Prepare offline web package
-        run: |
-          mkdir -p build/diftiri-web
-          gunzip -c web/index.html.gz > build/diftiri-web/index.html
-          cp web/manifest.webmanifest web/sw.js build/diftiri-web/
-          cp assets/branding/diftiri_logo.jpg build/diftiri-web/logo.jpg
+      - name: Generate Web platform
+        run: flutter create . --platforms=web --org com.diftiri.accounting
+
+      - run: flutter pub get
+
+      - name: Install offline SQLite web binaries
+        run: dart run sqflite_common_ffi_web:setup --force
+
+      - run: flutter analyze --no-fatal-infos
+
+      - name: Build responsive offline-capable web app
+        run: flutter build web --release --base-href /diftiri/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: diftiri-web-pwa
-          path: build/diftiri-web/**
+          name: diftiri-web
+          path: build/web/**
 
   android:
     name: Android APK
