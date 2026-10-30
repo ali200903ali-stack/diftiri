@@ -11,10 +11,15 @@ import '../../core/database/app_database.dart';
 class InvoiceDocumentScreen extends StatefulWidget {
   const InvoiceDocumentScreen({
     super.key,
-    required this.saleId,
-  });
+    this.saleId,
+    this.purchaseId,
+  }) : assert(
+          (saleId != null) != (purchaseId != null),
+          'حدد فاتورة مبيعات أو مشتريات واحدة',
+        );
 
-  final int saleId;
+  final int? saleId;
+  final int? purchaseId;
 
   @override
   State<InvoiceDocumentScreen> createState() =>
@@ -23,8 +28,7 @@ class InvoiceDocumentScreen extends StatefulWidget {
 
 class _InvoiceDocumentScreenState
     extends State<InvoiceDocumentScreen> {
-  SalesInvoiceRecord? invoice;
-  List<SaleItemRecord> items = const [];
+  _InvoiceDocData? invoice;
   BusinessSettingsRecord? settings;
   String paper = 'a4';
   bool loading = true;
@@ -36,17 +40,83 @@ class _InvoiceDocumentScreenState
   }
 
   Future<void> _load() async {
-    final loadedInvoice =
-        await AppDatabase.instance.getSalesInvoice(widget.saleId);
-    final loadedItems =
-        await AppDatabase.instance.getSaleItems(widget.saleId);
     final loadedSettings =
         await AppDatabase.instance.getBusinessSettings();
+    _InvoiceDocData? loadedInvoice;
+
+    if (widget.saleId != null) {
+      final record = await AppDatabase.instance
+          .getSalesInvoice(widget.saleId!);
+      final items = await AppDatabase.instance
+          .getSaleItems(widget.saleId!);
+
+      if (record != null) {
+        loadedInvoice = _InvoiceDocData(
+          id: record.id,
+          kind: 'sale',
+          title: 'فاتورة مبيعات',
+          invoiceNumber: record.invoiceNumber,
+          createdAt: record.createdAt,
+          partyLabel: 'العميل',
+          partyName: record.customerName,
+          status: record.status,
+          paymentMethod: record.paymentMethod,
+          subtotal: record.subtotal,
+          taxAmount: record.taxAmount,
+          discount: record.discount,
+          total: record.total,
+          notes: record.notes,
+          lines: items
+              .map(
+                (item) => _InvoiceDocLine(
+                  name: item.productName,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  total: item.total,
+                ),
+              )
+              .toList(),
+        );
+      }
+    } else {
+      final record = await AppDatabase.instance
+          .getPurchaseInvoice(widget.purchaseId!);
+      final items = await AppDatabase.instance
+          .getPurchaseItems(widget.purchaseId!);
+
+      if (record != null) {
+        loadedInvoice = _InvoiceDocData(
+          id: record.id,
+          kind: 'purchase',
+          title: 'فاتورة مشتريات',
+          invoiceNumber: record.invoiceNumber,
+          createdAt: record.createdAt,
+          partyLabel: 'المورد',
+          partyName: record.supplierName,
+          status: record.status,
+          paymentMethod: record.paymentMethod,
+          subtotal: record.subtotal,
+          taxAmount: record.taxAmount,
+          discount: record.discount,
+          total: record.total,
+          notes: record.notes,
+          lines: items
+              .map(
+                (item) => _InvoiceDocLine(
+                  name: item.productName,
+                  quantity: item.quantity,
+                  unitPrice: item.unitCost,
+                  total: item.total,
+                ),
+              )
+              .toList(),
+        );
+      }
+    }
 
     if (!mounted) return;
     setState(() {
       invoice = loadedInvoice;
-      items = loadedItems;
       settings = loadedSettings;
       paper = loadedSettings.invoicePaper;
       loading = false;
@@ -80,8 +150,9 @@ class _InvoiceDocumentScreenState
     final document = pw.Document();
 
     if (paper == 'thermal') {
-      final heightMm =
-          (118 + (items.length * 14)).clamp(150, 520).toDouble();
+      final heightMm = (118 + (currentInvoice.lines.length * 14))
+          .clamp(150, 520)
+          .toDouble();
       document.addPage(
         pw.Page(
           pageFormat: PdfPageFormat(
@@ -98,7 +169,6 @@ class _InvoiceDocumentScreenState
             child: _thermalReceipt(
               invoice: currentInvoice,
               settings: currentSettings,
-              items: items,
               logo: logo,
               accent: accent,
             ),
@@ -138,7 +208,6 @@ class _InvoiceDocumentScreenState
               textDirection: pw.TextDirection.rtl,
               child: _a4Body(
                 invoice: currentInvoice,
-                items: items,
                 accent: accent,
               ),
             ),
@@ -168,8 +237,18 @@ class _InvoiceDocumentScreenState
         local.day.toString().padLeft(2, '0');
   }
 
+  String _statusText(String value) {
+    if (value == 'paid') return 'مدفوعة';
+    if (value == 'unpaid') return 'آجلة';
+    return 'مسودة';
+  }
+
+  String _paymentText(String value) {
+    return value == 'bank' ? 'تحويل بنكي' : 'نقدي';
+  }
+
   pw.Widget _a4Header({
-    required SalesInvoiceRecord invoice,
+    required _InvoiceDocData invoice,
     required BusinessSettingsRecord settings,
     required pw.MemoryImage logo,
     required PdfColor accent,
@@ -211,7 +290,7 @@ class _InvoiceDocumentScreenState
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'فاتورة مبيعات',
+                    invoice.title,
                     style: pw.TextStyle(
                       color: accent,
                       fontSize: 19,
@@ -245,8 +324,7 @@ class _InvoiceDocumentScreenState
   }
 
   pw.Widget _a4Body({
-    required SalesInvoiceRecord invoice,
-    required List<SaleItemRecord> items,
+    required _InvoiceDocData invoice,
     required PdfColor accent,
   }) {
     return pw.Column(
@@ -262,35 +340,29 @@ class _InvoiceDocumentScreenState
             children: [
               pw.Expanded(
                 child: _pdfMeta(
-                  'العميل',
-                  invoice.customerName.isEmpty
-                      ? 'عميل نقدي'
-                      : invoice.customerName,
+                  invoice.partyLabel,
+                  invoice.partyName.isEmpty
+                      ? 'غير محدد'
+                      : invoice.partyName,
                 ),
               ),
               pw.Expanded(
                 child: _pdfMeta(
                   'طريقة الدفع',
-                  invoice.paymentMethod == 'bank'
-                      ? 'تحويل بنكي'
-                      : 'نقدي',
+                  _paymentText(invoice.paymentMethod),
                 ),
               ),
               pw.Expanded(
                 child: _pdfMeta(
                   'الحالة',
-                  invoice.status == 'paid'
-                      ? 'مدفوعة'
-                      : invoice.status == 'unpaid'
-                          ? 'غير مدفوعة'
-                          : 'مسودة',
+                  _statusText(invoice.status),
                 ),
               ),
             ],
           ),
         ),
         pw.SizedBox(height: 18),
-        _invoiceTable(items, accent),
+        _invoiceTable(invoice.lines, accent),
         pw.SizedBox(height: 18),
         pw.Align(
           alignment: pw.Alignment.centerLeft,
@@ -333,9 +405,8 @@ class _InvoiceDocumentScreenState
   }
 
   pw.Widget _thermalReceipt({
-    required SalesInvoiceRecord invoice,
+    required _InvoiceDocData invoice,
     required BusinessSettingsRecord settings,
-    required List<SaleItemRecord> items,
     required pw.MemoryImage logo,
     required PdfColor accent,
   }) {
@@ -360,9 +431,11 @@ class _InvoiceDocumentScreenState
         ),
         pw.SizedBox(height: 4),
         pw.Text(
-          invoice.invoiceNumber.isEmpty
-              ? 'فاتورة #' + invoice.id.toString()
-              : invoice.invoiceNumber,
+          invoice.title +
+              ' ' +
+              (invoice.invoiceNumber.isEmpty
+                  ? '#' + invoice.id.toString()
+                  : invoice.invoiceNumber),
           textAlign: pw.TextAlign.center,
           style: pw.TextStyle(
             fontSize: 10,
@@ -376,14 +449,14 @@ class _InvoiceDocumentScreenState
           style: const pw.TextStyle(fontSize: 8),
         ),
         pw.Divider(color: PdfColors.grey500),
-        ...items.map(
+        ...invoice.lines.map(
           (item) => pw.Padding(
             padding: const pw.EdgeInsets.symmetric(vertical: 3),
             child: pw.Row(
               children: [
                 pw.Expanded(
                   child: pw.Text(
-                    item.productName,
+                    item.name,
                     style: const pw.TextStyle(fontSize: 8.5),
                   ),
                 ),
@@ -414,14 +487,18 @@ class _InvoiceDocumentScreenState
         ),
         pw.SizedBox(height: 4),
         pw.Text(
-          invoice.customerName.isEmpty
-              ? 'العميل: نقدي'
-              : 'العميل: ' + invoice.customerName,
+          invoice.partyLabel +
+              ': ' +
+              (invoice.partyName.isEmpty
+                  ? 'غير محدد'
+                  : invoice.partyName),
           style: const pw.TextStyle(fontSize: 8),
         ),
         pw.SizedBox(height: 10),
         pw.Text(
-          'شكرًا لتعاملكم معنا',
+          invoice.kind == 'sale'
+              ? 'شكرًا لتعاملكم معنا'
+              : 'مستند مشتريات محفوظ في دفتري المحاسبي',
           textAlign: pw.TextAlign.center,
           style: pw.TextStyle(
             fontSize: 9,
@@ -433,7 +510,7 @@ class _InvoiceDocumentScreenState
   }
 
   pw.Widget _invoiceTable(
-    List<SaleItemRecord> items,
+    List<_InvoiceDocLine> items,
     PdfColor accent,
   ) {
     final rows = <pw.TableRow>[
@@ -449,7 +526,7 @@ class _InvoiceDocumentScreenState
       ...items.map(
         (item) => pw.TableRow(
           children: [
-            _tableCell(item.productName),
+            _tableCell(item.name),
             _tableCell(_num(item.quantity)),
             _tableCell(_money(item.unitPrice)),
             _tableCell(_money(item.total)),
@@ -558,10 +635,12 @@ class _InvoiceDocumentScreenState
   String _money(double value) => value.toStringAsFixed(2);
 
   Future<void> _sharePdf() async {
+    final current = invoice;
+    if (current == null) return;
     final bytes = await _buildPdf();
-    final number = invoice?.invoiceNumber.isNotEmpty == true
-        ? invoice!.invoiceNumber
-        : widget.saleId.toString();
+    final number = current.invoiceNumber.isNotEmpty
+        ? current.invoiceNumber
+        : current.id.toString();
     await Printing.sharePdf(
       bytes: bytes,
       filename: 'diftiri-' + number + '.pdf',
@@ -576,7 +655,8 @@ class _InvoiceDocumentScreenState
       );
     }
 
-    if (invoice == null) {
+    final current = invoice;
+    if (current == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('الفاتورة')),
         body: const Center(child: Text('الفاتورة غير موجودة')),
@@ -585,7 +665,7 @@ class _InvoiceDocumentScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('عرض وطباعة الفاتورة'),
+        title: Text('عرض وطباعة ' + current.title),
         actions: [
           IconButton(
             tooltip: 'تصدير PDF',
@@ -629,7 +709,7 @@ class _InvoiceDocumentScreenState
               canChangePageFormat: false,
               canDebug: false,
               pdfFileName:
-                  'diftiri-invoice-' + widget.saleId.toString() + '.pdf',
+                  'diftiri-' + current.kind + '-' + current.id.toString() + '.pdf',
               loadingWidget: const Center(
                 child: CircularProgressIndicator(),
               ),
@@ -639,4 +719,54 @@ class _InvoiceDocumentScreenState
       ),
     );
   }
+}
+
+class _InvoiceDocData {
+  const _InvoiceDocData({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.invoiceNumber,
+    required this.createdAt,
+    required this.partyLabel,
+    required this.partyName,
+    required this.status,
+    required this.paymentMethod,
+    required this.subtotal,
+    required this.taxAmount,
+    required this.discount,
+    required this.total,
+    required this.notes,
+    required this.lines,
+  });
+
+  final int id;
+  final String kind;
+  final String title;
+  final String invoiceNumber;
+  final DateTime createdAt;
+  final String partyLabel;
+  final String partyName;
+  final String status;
+  final String paymentMethod;
+  final double subtotal;
+  final double taxAmount;
+  final double discount;
+  final double total;
+  final String notes;
+  final List<_InvoiceDocLine> lines;
+}
+
+class _InvoiceDocLine {
+  const _InvoiceDocLine({
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    required this.total,
+  });
+
+  final String name;
+  final double quantity;
+  final double unitPrice;
+  final double total;
 }
