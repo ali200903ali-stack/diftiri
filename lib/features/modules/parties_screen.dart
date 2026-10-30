@@ -821,15 +821,14 @@ class _PartyCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const CircleAvatar(
-                radius: 27,
-                backgroundColor:
-                    Color(0xFFEAF3FA),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: AppColors.navy,
-                  size: 30,
-                ),
+              DiftiriIconBox(
+                icon: party.type == 'customer'
+                    ? Icons.person_rounded
+                    : Icons.local_shipping_rounded,
+                tone: party.type == 'customer'
+                    ? DiftiriTone.mint
+                    : DiftiriTone.navy,
+                size: 56,
               ),
               const SizedBox(width: 12),
               Expanded(
