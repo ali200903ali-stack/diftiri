@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class PartiesScreen extends StatefulWidget {
   const PartiesScreen({
@@ -443,8 +444,17 @@ class _PartiesScreenState extends State<PartiesScreen> {
         isCustomer ? 'إضافة عميل' : 'إضافة مورد';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
+      appBar: DiftiriAppBar(
+        title: widget.title,
+        subtitle: widget.type == 'customer'
+            ? 'ملفات العملاء والأرصدة والتحصيل'
+            : 'ملفات الموردين والأرصدة والسداد',
+        icon: widget.type == 'customer'
+            ? Icons.person_rounded
+            : Icons.local_shipping_rounded,
+        tone: widget.type == 'customer'
+            ? DiftiriTone.mint
+            : DiftiriTone.navy,
         actions: [
           IconButton(
             tooltip: addLabel,
