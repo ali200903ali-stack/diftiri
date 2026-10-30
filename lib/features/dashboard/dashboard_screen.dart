@@ -25,62 +25,62 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _Module(
       'المبيعات',
       Icons.receipt_long_rounded,
-      _ModuleTone.navy,
+      DiftiriTone.navy,
     ),
     _Module(
       'المشتريات',
       Icons.shopping_bag_rounded,
-      _ModuleTone.emerald,
+      DiftiriTone.emerald,
     ),
     _Module(
       'المخزون',
       Icons.inventory_2_rounded,
-      _ModuleTone.mint,
+      DiftiriTone.violet,
     ),
     _Module(
       'العملاء',
       Icons.person_rounded,
-      _ModuleTone.mint,
+      DiftiriTone.blue,
     ),
     _Module(
       'الموردون',
       Icons.local_shipping_rounded,
-      _ModuleTone.navy,
+      DiftiriTone.orange,
     ),
     _Module(
       'الحسابات',
       Icons.calculate_rounded,
-      _ModuleTone.emerald,
+      DiftiriTone.violet,
     ),
     _Module(
       'الصندوق',
       Icons.account_balance_wallet_rounded,
-      _ModuleTone.emerald,
+      DiftiriTone.emerald,
     ),
     _Module(
       'البنوك',
       Icons.account_balance_rounded,
-      _ModuleTone.mint,
+      DiftiriTone.blue,
     ),
     _Module(
       'المصروفات',
       Icons.request_quote_rounded,
-      _ModuleTone.navy,
+      DiftiriTone.rose,
     ),
     _Module(
       'القيود',
       Icons.edit_note_rounded,
-      _ModuleTone.mint,
+      DiftiriTone.amber,
     ),
     _Module(
       'التقارير',
       Icons.bar_chart_rounded,
-      _ModuleTone.emerald,
+      DiftiriTone.orange,
     ),
     _Module(
       'الإعدادات',
       Icons.settings_rounded,
-      _ModuleTone.navy,
+      DiftiriTone.navy,
     ),
   ];
 
@@ -152,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const _Module(
           'الطاولات',
           Icons.table_restaurant_rounded,
-          _ModuleTone.mint,
+          DiftiriTone.rose,
         ),
     ];
 
@@ -342,21 +342,15 @@ class _BrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.only(
-          top: desktop ? 4 : 0,
-          bottom: desktop ? 2 : 0,
-        ),
-        child: SizedBox(
-          width: desktop ? 430 : 286,
-          height: desktop ? 112 : 84,
-          child: Image.asset(
-            'assets/branding/diftiri_logo.jpg',
-            fit: BoxFit.contain,
-            semanticLabel: 'دفتري المحاسبي',
-          ),
-        ),
+    return Padding(
+      padding: EdgeInsets.only(
+        top: desktop ? 4 : 0,
+        bottom: desktop ? 4 : 2,
+      ),
+      child: DiftiriBrandLogo(
+        width: desktop ? 220 : 168,
+        height: desktop ? 82 : 64,
+        alignment: Alignment.centerLeft,
       ),
     );
   }
@@ -566,11 +560,7 @@ class _ModuleCard extends StatelessWidget {
           children: [
             DiftiriIconBox(
               icon: module.icon,
-              tone: switch (module.tone) {
-                _ModuleTone.navy => DiftiriTone.navy,
-                _ModuleTone.emerald => DiftiriTone.emerald,
-                _ModuleTone.mint => DiftiriTone.mint,
-              },
+              tone: module.tone,
               size: iconBox,
               iconSize: iconBox * .50,
             ),
@@ -596,12 +586,6 @@ class _ModuleCard extends StatelessWidget {
   }
 }
 
-enum _ModuleTone {
-  navy,
-  emerald,
-  mint,
-}
-
 class _Module {
   const _Module(
     this.title,
@@ -611,5 +595,5 @@ class _Module {
 
   final String title;
   final IconData icon;
-  final _ModuleTone tone;
+  final DiftiriTone tone;
 }
