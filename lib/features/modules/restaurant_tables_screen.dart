@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class RestaurantTablesScreen
     extends StatefulWidget {
@@ -134,8 +135,11 @@ class _RestaurantTablesScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('طاولات المطعم'),
+      appBar: const DiftiriAppBar(
+        title: 'طاولات المطعم',
+        subtitle: 'إدارة الطاولات والطلبات المحلية',
+        icon: Icons.table_restaurant_rounded,
+        tone: DiftiriTone.mint,
       ),
       floatingActionButton:
           FloatingActionButton.extended(
