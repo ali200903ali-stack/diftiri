@@ -305,19 +305,10 @@ class _PurchaseCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFEAF3FA),
-                  borderRadius:
-                      BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.shopping_bag_rounded,
-                  color: AppColors.navy,
-                ),
+              const DiftiriIconBox(
+                icon: Icons.shopping_bag_rounded,
+                tone: DiftiriTone.emerald,
+                size: 52,
               ),
               const SizedBox(width: 12),
               Expanded(
