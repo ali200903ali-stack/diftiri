@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'accounting_screen.dart';
 import 'inventory_screen.dart';
 
@@ -53,8 +54,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('التقارير'),
+      appBar: DiftiriAppBar(
+        title: 'التقارير',
+        subtitle: 'تحليل مالي ومؤشرات ورسوم بيانية',
+        icon: Icons.bar_chart_rounded,
+        tone: DiftiriTone.emerald,
         actions: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
