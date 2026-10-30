@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class ManualJournalScreen extends StatefulWidget {
   const ManualJournalScreen({super.key});
@@ -137,8 +138,11 @@ class _ManualJournalScreenState extends State<ManualJournalScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('قيد بسيط'),
+      appBar: DiftiriAppBar(
+        title: 'قيد يومية',
+        subtitle: 'قيد مزدوج متوازن مدين ودائن',
+        icon: Icons.edit_note_rounded,
+        tone: DiftiriTone.mint,
         actions: [
           IconButton(
             tooltip: 'حفظ',
