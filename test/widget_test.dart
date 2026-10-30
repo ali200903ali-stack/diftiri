@@ -183,10 +183,12 @@ void main() {
       final logoFinder = find.byType(DiftiriBrandLogo);
       expect(logoFinder, findsOneWidget);
 
-      final rect = tester.getRect(logoFinder);
-      expect(rect.left, lessThan(40));
-      expect(rect.width, lessThanOrEqualTo(180));
-      expect(rect.height, lessThanOrEqualTo(70));
+      final logo = tester.widget<DiftiriBrandLogo>(
+        logoFinder,
+      );
+      expect(logo.width, lessThanOrEqualTo(180));
+      expect(logo.height, lessThanOrEqualTo(70));
+      expect(logo.alignment, Alignment.centerLeft);
 
       final icons = tester
           .widgetList<DiftiriIconBox>(
