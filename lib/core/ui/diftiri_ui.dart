@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_theme.dart';
 
-enum DiftiriTone { navy, emerald, mint }
+enum DiftiriTone {
+  navy,
+  emerald,
+  mint,
+  blue,
+  violet,
+  orange,
+  rose,
+  amber,
+}
 
 class DiftiriIconBox extends StatelessWidget {
   const DiftiriIconBox({
@@ -33,6 +43,26 @@ class DiftiriIconBox extends StatelessWidget {
       DiftiriTone.mint => const [
           Color(0xFFF7FFFD),
           Color(0xFFDDF8F1),
+        ],
+      DiftiriTone.blue => const [
+          Color(0xFF4A90E2),
+          Color(0xFF1F5EAA),
+        ],
+      DiftiriTone.violet => const [
+          Color(0xFF8B6CE8),
+          Color(0xFF5B3DBE),
+        ],
+      DiftiriTone.orange => const [
+          Color(0xFFFFA14A),
+          Color(0xFFD96A15),
+        ],
+      DiftiriTone.rose => const [
+          Color(0xFFEE6A86),
+          Color(0xFFB93455),
+        ],
+      DiftiriTone.amber => const [
+          Color(0xFFF3BE3E),
+          Color(0xFFB77908),
         ],
     };
 
@@ -481,6 +511,37 @@ class _BottomNavItem extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class DiftiriBrandLogo extends StatelessWidget {
+  const DiftiriBrandLogo({
+    super.key,
+    this.width = 170,
+    this.height = 70,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  final double width;
+  final double height;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: SvgPicture.asset(
+          'assets/branding/diftiri_logo_vector.svg',
+          fit: BoxFit.contain,
+          alignment: Alignment.centerLeft,
+          semanticsLabel: 'دفتري المحاسبي',
         ),
       ),
     );
