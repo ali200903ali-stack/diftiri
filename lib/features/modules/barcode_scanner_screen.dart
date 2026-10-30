@@ -312,7 +312,7 @@ class _HardwareScannerPanel extends StatelessWidget {
                 },
                 decoration: const InputDecoration(
                   hintText: 'امسح أو أدخل الباركود',
-                  prefixIcon: Icon(Icons.barcode_reader),
+                  prefixIcon: Icon(Icons.qr_code_2_rounded),
                 ),
               ),
             ],
