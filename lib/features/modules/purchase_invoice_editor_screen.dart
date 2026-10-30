@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'invoice_document_screen.dart';
 
 class PurchaseInvoiceEditorScreen extends StatefulWidget {
   const PurchaseInvoiceEditorScreen({
@@ -154,6 +155,17 @@ class _PurchaseInvoiceEditorScreenState
     });
   }
 
+  Future<void> _openDocument() async {
+    if (widget.purchaseId == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => InvoiceDocumentScreen(
+          purchaseId: widget.purchaseId!,
+        ),
+      ),
+    );
+  }
+
   Future<void> _save({
     required bool draft,
   }) async {
@@ -222,6 +234,14 @@ class _PurchaseInvoiceEditorScreenState
               ? 'تفاصيل فاتورة الشراء'
               : 'تحرير فاتورة الشراء',
         ),
+        actions: [
+          if (posted)
+            IconButton(
+              tooltip: 'PDF والطباعة',
+              onPressed: _openDocument,
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+            ),
+        ],
       ),
       body: ListView(
         key: const Key(
@@ -592,7 +612,29 @@ class _PurchaseInvoiceEditorScreenState
         ],
       ),
       bottomNavigationBar: posted
-          ? null
+          ? SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: AppColors.border),
+                  ),
+                ),
+                child: FilledButton.icon(
+                  onPressed: _openDocument,
+                  icon: const Icon(Icons.picture_as_pdf_rounded),
+                  label: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 13),
+                    child: Text(
+                      'عرض PDF / طباعة',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ),
+            )
           : SafeArea(
               top: false,
               child: Container(
