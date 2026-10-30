@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'invoice_document_screen.dart';
 import 'sales_return_screen.dart';
 
@@ -219,14 +220,15 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          readOnly
-              ? 'تفاصيل الفاتورة'
-              : posted
-                  ? 'تعديل الفاتورة'
-                  : 'تحرير الفاتورة',
-        ),
+      appBar: DiftiriAppBar(
+        title: readOnly
+            ? 'تفاصيل الفاتورة'
+            : posted
+                ? 'تعديل الفاتورة'
+                : 'تحرير الفاتورة',
+        subtitle: 'بنود، خصم، ضريبة، ترحيل وطباعة',
+        icon: Icons.receipt_long_rounded,
+        tone: DiftiriTone.navy,
         actions: [
           if (posted)
             IconButton(
