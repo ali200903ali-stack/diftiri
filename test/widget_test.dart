@@ -117,7 +117,7 @@ void main() {
 
       await pumpUntil(
         tester,
-        find.text('نسخة تجريبية'),
+        find.byKey(const Key('dashboard-search')),
       );
 
       expect(
