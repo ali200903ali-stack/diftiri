@@ -87,7 +87,10 @@ class _InvoiceDocumentScreenState
           pageFormat: PdfPageFormat(
             80 * PdfPageFormat.mm,
             heightMm * PdfPageFormat.mm,
-            marginAll: 4 * PdfPageFormat.mm,
+            marginLeft: 4 * PdfPageFormat.mm,
+            marginTop: 4 * PdfPageFormat.mm,
+            marginRight: 4 * PdfPageFormat.mm,
+            marginBottom: 4 * PdfPageFormat.mm,
           ),
           theme: theme,
           build: (context) => pw.Directionality(
@@ -200,12 +203,7 @@ class _InvoiceDocumentScreenState
               width: 190,
               padding: const pw.EdgeInsets.all(14),
               decoration: pw.BoxDecoration(
-                color: PdfColor(
-                  accent.red,
-                  accent.green,
-                  accent.blue,
-                  .09,
-                ),
+                color: PdfColors.grey100,
                 borderRadius: pw.BorderRadius.circular(12),
                 border: pw.Border.all(color: accent, width: .8),
               ),
@@ -377,7 +375,7 @@ class _InvoiceDocumentScreenState
           textAlign: pw.TextAlign.center,
           style: const pw.TextStyle(fontSize: 8),
         ),
-        pw.Divider(borderStyle: pw.BorderStyle.dashed),
+        pw.Divider(color: PdfColors.grey500),
         ...items.map(
           (item) => pw.Padding(
             padding: const pw.EdgeInsets.symmetric(vertical: 3),
@@ -407,7 +405,7 @@ class _InvoiceDocumentScreenState
             ),
           ),
         ),
-        pw.Divider(borderStyle: pw.BorderStyle.dashed),
+        pw.Divider(color: PdfColors.grey500),
         _pdfTotalRow(
           'الإجمالي',
           invoice.total,
