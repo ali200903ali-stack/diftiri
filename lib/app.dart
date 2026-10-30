@@ -24,7 +24,7 @@ class DiftiriApp extends StatelessWidget {
             return MediaQuery(
               data: media.copyWith(
                 textScaler: TextScaler.linear(
-                  preferences.fontScale.clamp(.88, 1.28),
+                  preferences.fontScale.clamp(.88, 1.28).toDouble(),
                 ),
               ),
               child: Directionality(
