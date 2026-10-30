@@ -2118,7 +2118,12 @@ class AppDatabase {
       if (saleId != null) {
         final existing = await txn.query(
           'sales',
-          columns: ['status', 'posted'],
+          columns: [
+            'status',
+            'posted',
+            'total',
+            'customer_id',
+          ],
           where: 'id = ?',
           whereArgs: [saleId],
           limit: 1,
@@ -2126,11 +2131,70 @@ class AppDatabase {
         if (existing.isEmpty) {
           throw StateError('الفاتورة غير موجودة');
         }
-        final posted =
-            (existing.first['posted'] as num).toInt() == 1;
-        if (posted) {
-          throw StateError(
-            'الفاتورة المرحلة لا تُعدّل. استخدم المرتجع.',
+
+        final existingSale = existing.first;
+        final wasPosted =
+            (existingSale['posted'] as num).toInt() == 1;
+
+        if (wasPosted) {
+          final returns = await txn.query(
+            'sale_returns',
+            columns: ['id'],
+            where: 'sale_id = ?',
+            whereArgs: [saleId],
+            limit: 1,
+          );
+          if (returns.isNotEmpty) {
+            throw StateError(
+              'لا يمكن تعديل فاتورة عليها مرتجع. أنشئ فاتورة جديدة أو قيد تسوية.',
+            );
+          }
+
+          final oldItems = await txn.rawQuery('''
+            SELECT
+              i.product_id,
+              i.qty,
+              p.track_stock
+            FROM sale_items i
+            JOIN products p ON p.id = i.product_id
+            WHERE i.sale_id = ?
+          ''', [saleId]);
+
+          for (final item in oldItems) {
+            if ((item['track_stock'] as num).toInt() == 1) {
+              await txn.rawUpdate(
+                'UPDATE products '
+                'SET stock = stock + ? '
+                'WHERE id = ?',
+                [item['qty'], item['product_id']],
+              );
+            }
+          }
+
+          final oldStatus =
+              (existingSale['status'] as String?) ?? 'paid';
+          final oldCustomerId =
+              existingSale['customer_id'] as int?;
+          final oldTotal =
+              (existingSale['total'] as num).toDouble();
+
+          if (oldStatus == 'unpaid' &&
+              oldCustomerId != null) {
+            await txn.rawUpdate(
+              'UPDATE parties '
+              'SET balance = MAX(balance - ?, 0) '
+              'WHERE id = ?',
+              [oldTotal, oldCustomerId],
+            );
+          }
+
+          await txn.delete(
+            'journal_entries',
+            where: 'reference = ? OR reference = ?',
+            whereArgs: [
+              'INV-' + saleId.toString(),
+              'SALE-' + saleId.toString(),
+            ],
           );
         }
       }
