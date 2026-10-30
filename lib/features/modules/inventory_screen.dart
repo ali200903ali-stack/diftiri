@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'barcode_scanner_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -153,12 +154,43 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      TextField(
-                        controller: sku,
-                        decoration:
-                            const InputDecoration(
-                          labelText: 'الباركود / SKU',
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: sku,
+                              decoration:
+                                  const InputDecoration(
+                                labelText: 'الباركود / SKU',
+                                prefixIcon: Icon(
+                                  Icons.qr_code_rounded,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'مسح الباركود',
+                            onPressed: () async {
+                              final code =
+                                  await Navigator.of(context)
+                                      .push<String>(
+                                MaterialPageRoute<String>(
+                                  builder: (_) =>
+                                      const BarcodeScannerScreen(
+                                    title: 'باركود الصنف',
+                                  ),
+                                ),
+                              );
+                              if (code != null) {
+                                sku.text = code;
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.qr_code_scanner_rounded,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       TextField(
