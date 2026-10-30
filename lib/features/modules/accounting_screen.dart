@@ -29,7 +29,7 @@ class _AccountingScreenState extends State<AccountingScreen>
     tabController = TabController(
       length: 2,
       vsync: this,
-      initialIndex: widget.initialTab.clamp(0, 1),
+      initialIndex: widget.initialTab.clamp(0, 1).toInt(),
     );
     tabController.addListener(_handleTabChanged);
     _reload();
