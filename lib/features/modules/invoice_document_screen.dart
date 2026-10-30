@@ -133,16 +133,11 @@ class _InvoiceDocumentScreenState
 
     final fontData =
         await rootBundle.load('assets/fonts/Cairo.ttf');
-    final logoData =
-        await rootBundle.load('assets/branding/diftiri_logo.jpg');
+    final logoSvg = await rootBundle.loadString(
+      'assets/branding/diftiri_logo_vector.svg',
+    );
 
     final font = pw.Font.ttf(fontData);
-    final logo = pw.MemoryImage(
-      logoData.buffer.asUint8List(
-        logoData.offsetInBytes,
-        logoData.lengthInBytes,
-      ),
-    );
     final accent = _pdfColor(currentSettings.invoiceColorHex);
     final theme = pw.ThemeData.withFont(
       base: font,
@@ -170,7 +165,7 @@ class _InvoiceDocumentScreenState
             child: _thermalReceipt(
               invoice: currentInvoice,
               settings: currentSettings,
-              logo: logo,
+              logoSvg: logoSvg,
               accent: accent,
             ),
           ),
@@ -187,7 +182,7 @@ class _InvoiceDocumentScreenState
             child: _a4Header(
               invoice: currentInvoice,
               settings: currentSettings,
-              logo: logo,
+              logoSvg: logoSvg,
               accent: accent,
             ),
           ),
@@ -251,7 +246,7 @@ class _InvoiceDocumentScreenState
   pw.Widget _a4Header({
     required _InvoiceDocData invoice,
     required BusinessSettingsRecord settings,
-    required pw.MemoryImage logo,
+    required String logoSvg,
     required PdfColor accent,
   }) {
     return pw.Column(
@@ -266,7 +261,7 @@ class _InvoiceDocumentScreenState
                   pw.Container(
                     height: 64,
                     alignment: pw.Alignment.centerRight,
-                    child: pw.Image(logo, fit: pw.BoxFit.contain),
+                    child: pw.SvgImage(svg: logoSvg, fit: pw.BoxFit.contain),
                   ),
                   pw.SizedBox(height: 6),
                   pw.Text(
@@ -408,7 +403,7 @@ class _InvoiceDocumentScreenState
   pw.Widget _thermalReceipt({
     required _InvoiceDocData invoice,
     required BusinessSettingsRecord settings,
-    required pw.MemoryImage logo,
+    required String logoSvg,
     required PdfColor accent,
   }) {
     return pw.Column(
@@ -418,7 +413,7 @@ class _InvoiceDocumentScreenState
           child: pw.SizedBox(
             height: 38,
             width: 120,
-            child: pw.Image(logo, fit: pw.BoxFit.contain),
+            child: pw.SvgImage(svg: logoSvg, fit: pw.BoxFit.contain),
           ),
         ),
         pw.SizedBox(height: 5),
