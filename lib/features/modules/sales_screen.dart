@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import '../../core/theme/app_ui_preferences.dart';
 import 'barcode_scanner_screen.dart';
 import 'sales_history_screen.dart';
@@ -415,8 +416,11 @@ class _SalesScreenState extends State<SalesScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('نقطة البيع'),
+      appBar: DiftiriAppBar(
+        title: 'نقطة البيع',
+        subtitle: 'كاشير سريع، باركود وسلة مباشرة',
+        icon: Icons.point_of_sale_rounded,
+        tone: DiftiriTone.navy,
         actions: [
           IconButton(
             tooltip: 'سجل المبيعات',
