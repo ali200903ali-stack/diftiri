@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class SalesReturnScreen extends StatefulWidget {
   const SalesReturnScreen({
@@ -99,8 +100,11 @@ class _SalesReturnScreenState extends State<SalesReturnScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('مرتجع مبيعات'),
+      appBar: DiftiriAppBar(
+        title: 'مرتجع مبيعات',
+        subtitle: 'إرجاع جزئي أو كامل مع عكس المخزون والقيد',
+        icon: Icons.assignment_return_rounded,
+        tone: DiftiriTone.navy,
         actions: [
           TextButton(
             onPressed: _returnAll,
