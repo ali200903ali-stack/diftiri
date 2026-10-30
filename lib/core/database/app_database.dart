@@ -441,17 +441,21 @@ class AccountRecord {
     required this.code,
     required this.name,
     required this.type,
+    this.balance = 0,
   });
 
   final String code;
   final String name;
   final String type;
+  final double balance;
 
   factory AccountRecord.fromMap(Map<String, Object?> map) {
     return AccountRecord(
       code: map['code'] as String,
       name: map['name'] as String,
       type: map['type'] as String,
+      balance:
+          (map['balance'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -1947,10 +1951,21 @@ class AppDatabase {
 
 
   Future<List<AccountRecord>> getAccounts() async {
-    final rows = await db.query(
-      'accounts',
-      orderBy: 'code ASC',
-    );
+    final rows = await db.rawQuery('''
+      SELECT
+        a.code,
+        a.name,
+        a.type,
+        COALESCE(
+          SUM(l.debit - l.credit),
+          0
+        ) AS balance
+      FROM accounts a
+      LEFT JOIN journal_lines l
+        ON l.account_code = a.code
+      GROUP BY a.code, a.name, a.type
+      ORDER BY a.code ASC
+    ''');
     return rows.map(AccountRecord.fromMap).toList();
   }
 
