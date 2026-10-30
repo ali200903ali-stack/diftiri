@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class CashScreen extends StatefulWidget {
   const CashScreen({super.key});
@@ -100,8 +101,11 @@ class _CashScreenState extends State<CashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الصندوق'),
+      appBar: DiftiriAppBar(
+        title: 'الصندوق',
+        subtitle: 'الرصيد النقدي وحركة الصندوق',
+        icon: Icons.account_balance_wallet_rounded,
+        tone: DiftiriTone.emerald,
         actions: [
           IconButton(
             tooltip: 'رصيد افتتاحي',
