@@ -1,0 +1,13 @@
+{
+  "name": "دفتري المحاسبي",
+  "short_name": "دفتري",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./#dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6fbfc",
+  "theme_color": "#0db28e",
+  "description": "نظام محاسبة ومبيعات عربي يعمل أونلاين وأوفلاين",
+  "icons": []
+}

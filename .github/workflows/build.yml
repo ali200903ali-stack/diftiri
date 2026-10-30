@@ -10,10 +10,42 @@ permissions:
   contents: read
 
 concurrency:
-  group: diftiri-build-v7-${{ github.ref }}
+  group: diftiri-build-v8-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  web:
+    name: Web PWA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate interactive web app
+        run: |
+          gunzip -c web/index.html.gz > /tmp/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('/tmp/index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script>([\\s\\S]*?)</script>', html)
+          Path('/tmp/diftiri-app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          assert '<html' in html.lower()
+          assert scripts, 'No inline application script found'
+          PY
+          node --check /tmp/diftiri-app.js
+
+      - name: Prepare offline web package
+        run: |
+          mkdir -p build/diftiri-web
+          gunzip -c web/index.html.gz > build/diftiri-web/index.html
+          cp web/manifest.webmanifest web/sw.js build/diftiri-web/
+          cp assets/branding/diftiri_logo.jpg build/diftiri-web/logo.jpg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diftiri-web-pwa
+          path: build/diftiri-web/**
+
   android:
     name: Android APK
     runs-on: ubuntu-latest
