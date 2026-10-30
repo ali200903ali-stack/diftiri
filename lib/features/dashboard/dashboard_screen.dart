@@ -258,7 +258,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisCount: columnCount,
                                 mainAxisSpacing: gap,
                                 crossAxisSpacing: gap,
-                                childAspectRatio: desktop ? 1.02 : .82,
+                                childAspectRatio: desktop ? 1.02 : (width < 370 ? .76 : .82),
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) => _ModuleCard(
