@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'invoice_document_screen.dart';
 import 'sales_return_screen.dart';
 
 class InvoiceEditorScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
   String invoiceNumber = 'جديدة';
   bool loading = true;
   bool posted = false;
+  bool editMode = false;
 
   @override
   void initState() {
@@ -110,6 +112,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
 
   double get taxAmount => taxable * taxRateValue / 100;
   double get total => taxable + taxAmount;
+  bool get readOnly => posted && !editMode;
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'غير محدد';
@@ -184,6 +187,17 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
     }
   }
 
+  Future<void> _openDocument() async {
+    if (widget.saleId == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => InvoiceDocumentScreen(
+          saleId: widget.saleId!,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openReturn() async {
     if (widget.saleId == null) return;
     final changed = await Navigator.of(context).push<bool>(
@@ -206,8 +220,28 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(posted ? 'تفاصيل الفاتورة' : 'تحرير الفاتورة'),
+        title: Text(
+          readOnly
+              ? 'تفاصيل الفاتورة'
+              : posted
+                  ? 'تعديل الفاتورة'
+                  : 'تحرير الفاتورة',
+        ),
         actions: [
+          if (posted)
+            IconButton(
+              tooltip: 'PDF والطباعة',
+              onPressed: _openDocument,
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+            ),
+          if (posted && readOnly)
+            IconButton(
+              tooltip: 'تعديل الفاتورة',
+              onPressed: () {
+                setState(() => editMode = true);
+              },
+              icon: const Icon(Icons.edit_rounded),
+            ),
           if (posted)
             IconButton(
               tooltip: 'مرتجع',
@@ -256,7 +290,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                             ),
                           ),
                         ],
-                        onChanged: posted
+                        onChanged: readOnly
                             ? null
                             : (value) {
                                 setState(() {
@@ -274,7 +308,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                       child: _DateField(
                         label: 'تاريخ الإصدار',
                         value: _formatDate(issueDate),
-                        onTap: posted
+                        onTap: readOnly
                             ? null
                             : () async {
                                 final picked =
@@ -292,7 +326,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                       child: _DateField(
                         label: 'تاريخ الاستحقاق',
                         value: _formatDate(dueDate),
-                        onTap: posted
+                        onTap: readOnly
                             ? null
                             : () async {
                                 final picked =
@@ -327,7 +361,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                             child: Text('تحويل بنكي'),
                           ),
                         ],
-                        onChanged: posted
+                        onChanged: readOnly
                             ? null
                             : (value) {
                                 if (value == null) return;
@@ -355,7 +389,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                             child: Text('غير مدفوعة'),
                           ),
                         ],
-                        onChanged: posted
+                        onChanged: readOnly
                             ? null
                             : (value) {
                                 if (value == null) return;
@@ -380,9 +414,9 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                   _InvoiceLineEditor(
                     line: lines[i],
                     products: products,
-                    readOnly: posted,
+                    readOnly: readOnly,
                     onChanged: () => setState(() {}),
-                    onDelete: posted || lines.length == 1
+                    onDelete: readOnly || lines.length == 1
                         ? null
                         : () {
                             setState(() {
@@ -393,7 +427,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                   if (i != lines.length - 1)
                     const Divider(height: 18),
                 ],
-                if (!posted) ...[
+                if (!readOnly) ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
@@ -413,7 +447,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
             icon: Icons.calculate_rounded,
             child: Column(
               children: [
-                if (!posted)
+                if (!readOnly)
                   Row(
                     children: [
                       Expanded(
@@ -445,7 +479,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
                       ),
                     ],
                   ),
-                if (!posted) const SizedBox(height: 14),
+                if (!readOnly) const SizedBox(height: 14),
                 _TotalRow(label: 'الإجمالي الفرعي', value: subtotal),
                 _TotalRow(label: 'الخصم', value: -discountValue),
                 _TotalRow(label: 'الضريبة', value: taxAmount),
@@ -464,7 +498,7 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
             icon: Icons.notes_rounded,
             child: TextField(
               controller: notes,
-              enabled: !posted,
+              enabled: !readOnly,
               maxLines: 3,
               decoration: const InputDecoration(
                 hintText: 'أدخل أي ملاحظات على الفاتورة',
@@ -483,46 +517,74 @@ class _InvoiceEditorScreenState extends State<InvoiceEditorScreen> {
               top: BorderSide(color: AppColors.border),
             ),
           ),
-          child: posted
-              ? FilledButton.icon(
-                  onPressed: _openReturn,
-                  icon: const Icon(Icons.assignment_return_rounded),
-                  label: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 13),
-                    child: Text(
-                      'إنشاء مرتجع',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                )
-              : Row(
+          child: readOnly
+              ? Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _save(draft: true),
-                        child: const Padding(
+                      child: OutlinedButton.icon(
+                        onPressed: _openDocument,
+                        icon: const Icon(Icons.picture_as_pdf_rounded),
+                        label: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 13),
-                          child: Text('حفظ مسودة'),
+                          child: Text('PDF / طباعة'),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      flex: 2,
                       child: FilledButton.icon(
-                        onPressed: () => _save(draft: false),
-                        icon: const Icon(Icons.save_rounded),
+                        onPressed: _openReturn,
+                        icon: const Icon(Icons.assignment_return_rounded),
                         label: const Padding(
                           padding: EdgeInsets.symmetric(vertical: 13),
-                          child: Text(
-                            'حفظ وترحيل',
-                            style: TextStyle(fontWeight: FontWeight.w900),
-                          ),
+                          child: Text('مرتجع'),
                         ),
                       ),
                     ),
                   ],
-                ),
+                )
+              : posted
+                  ? FilledButton.icon(
+                      onPressed: () => _save(draft: false),
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 13),
+                        child: Text(
+                          'حفظ التعديلات وإعادة الترحيل',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _save(draft: true),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 13),
+                              child: Text('حفظ مسودة'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            onPressed: () => _save(draft: false),
+                            icon: const Icon(Icons.save_rounded),
+                            label: const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 13),
+                              child: Text(
+                                'حفظ وترحيل',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
         ),
       ),
     );
