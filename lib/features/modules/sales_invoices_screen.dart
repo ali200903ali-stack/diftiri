@@ -239,17 +239,10 @@ class _InvoiceCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F8F4),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Icon(
-                      Icons.receipt_long_rounded,
-                      color: AppColors.emeraldDark,
-                    ),
+                  const DiftiriIconBox(
+                    icon: Icons.receipt_long_rounded,
+                    tone: DiftiriTone.navy,
+                    size: 52,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
