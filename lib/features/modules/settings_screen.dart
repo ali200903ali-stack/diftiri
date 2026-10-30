@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import '../../core/theme/app_ui_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -106,7 +107,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('الإعدادات')),
+      appBar: const DiftiriAppBar(
+        title: 'الإعدادات',
+        subtitle: 'الهوية، الخطوط، الفواتير والباركود',
+        icon: Icons.settings_rounded,
+        tone: DiftiriTone.navy,
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final phone = constraints.maxWidth < 700;
