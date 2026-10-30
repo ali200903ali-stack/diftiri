@@ -168,13 +168,8 @@ class _ExpenseForm extends StatelessWidget {
       ),
     ];
 
-    return Container(
+    return DiftiriSurface(
       padding: EdgeInsets.all(phone ? 14 : 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
-      ),
       child: phone
           ? Column(
               children: [
@@ -228,19 +223,19 @@ class _ExpenseTile extends StatelessWidget {
         .toString()
         .substring(0, 16);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 13,
           vertical: 4,
         ),
-        leading: const CircleAvatar(
-          child: Icon(Icons.request_quote_rounded),
+        leading: const DiftiriIconBox(
+          icon: Icons.request_quote_rounded,
+          tone: DiftiriTone.navy,
+          size: 46,
+          iconSize: 23,
         ),
         title: Text(
           record.category,
