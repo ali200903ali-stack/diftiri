@@ -326,33 +326,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icons.qr_code_scanner_rounded,
                         child: Column(
                           children: [
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              value: saleScannerEnabled,
-                              onChanged: (value) {
-                                setState(() => saleScannerEnabled = value);
-                              },
-                              title: const Text(
-                                'إظهار ماسح الباركود في شاشة البيع',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                              subtitle: const Text(
-                                'يمكن إبقاء الماسح مفتوحًا لإضافة عدة منتجات متتالية.',
+                            Material(
+                              color: Colors.transparent,
+                              child: SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                value: saleScannerEnabled,
+                                onChanged: (value) {
+                                  setState(
+                                    () => saleScannerEnabled = value,
+                                  );
+                                },
+                                title: const Text(
+                                  'إظهار ماسح الباركود في شاشة البيع',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                subtitle: const Text(
+                                  'يمكن إبقاء الماسح مفتوحًا لإضافة عدة منتجات متتالية.',
+                                ),
                               ),
                             ),
                             const Divider(),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              value: scannerSoundEnabled,
-                              onChanged: (value) {
-                                setState(() => scannerSoundEnabled = value);
-                              },
-                              title: const Text(
-                                'نغمة تأكيد بعد قراءة الصنف',
-                                style: TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                              subtitle: const Text(
-                                'تشغيل صوت قصير عند نجاح إضافة المنتج للسلة.',
+                            Material(
+                              color: Colors.transparent,
+                              child: SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                value: scannerSoundEnabled,
+                                onChanged: (value) {
+                                  setState(
+                                    () => scannerSoundEnabled = value,
+                                  );
+                                },
+                                title: const Text(
+                                  'نغمة تأكيد بعد قراءة الصنف',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                subtitle: const Text(
+                                  'تشغيل صوت قصير عند نجاح إضافة المنتج للسلة.',
+                                ),
                               ),
                             ),
                           ],
