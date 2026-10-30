@@ -1,9 +1,6 @@
-import 'dart:io';
+import 'package:sqflite_common/sqlite_api.dart';
 
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'database_platform.dart';
 
 class ProductRecord {
   const ProductRecord({
@@ -262,11 +259,23 @@ class BusinessSettingsRecord {
     required this.businessName,
     required this.activityType,
     required this.currency,
+    this.uiScale = 1,
+    this.fontScale = 1,
+    this.invoiceColorHex = '0DB28E',
+    this.invoicePaper = 'a4',
+    this.saleScannerEnabled = true,
+    this.scannerSoundEnabled = true,
   });
 
   final String businessName;
   final String activityType;
   final String currency;
+  final double uiScale;
+  final double fontScale;
+  final String invoiceColorHex;
+  final String invoicePaper;
+  final bool saleScannerEnabled;
+  final bool scannerSoundEnabled;
 }
 
 
@@ -629,51 +638,39 @@ class AppDatabase {
   Future<void> initialize({bool inMemory = false}) async {
     if (_db != null) return;
 
-    if (Platform.isWindows || Platform.isLinux) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
+    final factory = await diftiriDatabaseFactory();
+    final dbPath = await diftiriDatabasePath(
+      inMemory: inMemory,
+    );
 
-    String dbPath;
-    if (inMemory) {
-      dbPath = inMemoryDatabasePath;
-    } else {
-      try {
-        final dir = await getApplicationSupportDirectory();
-        await dir.create(recursive: true);
-        dbPath = p.join(dir.path, 'diftiri.db');
-      } catch (_) {
-        final dir = await Directory.systemTemp.createTemp('diftiri_');
-        dbPath = p.join(dir.path, 'diftiri.db');
-      }
-    }
-
-    _db = await openDatabase(
+    _db = await factory.openDatabase(
       dbPath,
-      version: 5,
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
-      onCreate: (db, version) async {
-        await _createSchema(db);
-        await _seed(db);
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await _createVersion2Tables(db);
-          await _seedVersion2(db);
-        }
-        if (oldVersion < 3) {
-          await _createVersion3Tables(db);
-          await _seedVersion3(db);
-        }
-        if (oldVersion < 4) {
-          await _upgradeToVersion4(db);
-        }
-        if (oldVersion < 5) {
-          await _upgradeToVersion5(db);
-        }
-      },
+      options: OpenDatabaseOptions(
+        version: 5,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
+        onCreate: (db, version) async {
+          await _createSchema(db);
+          await _seed(db);
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await _createVersion2Tables(db);
+            await _seedVersion2(db);
+          }
+          if (oldVersion < 3) {
+            await _createVersion3Tables(db);
+            await _seedVersion3(db);
+          }
+          if (oldVersion < 4) {
+            await _upgradeToVersion4(db);
+          }
+          if (oldVersion < 5) {
+            await _upgradeToVersion5(db);
+          }
+        },
+      ),
     );
   }
 
@@ -1892,6 +1889,18 @@ class AppDatabase {
       activityType:
           values['activity_type'] ?? 'grocery',
       currency: values['currency'] ?? 'YER',
+      uiScale:
+          double.tryParse(values['ui_scale'] ?? '') ?? 1,
+      fontScale:
+          double.tryParse(values['font_scale'] ?? '') ?? 1,
+      invoiceColorHex:
+          values['invoice_color_hex'] ?? '0DB28E',
+      invoicePaper:
+          values['invoice_paper'] ?? 'a4',
+      saleScannerEnabled:
+          values['sale_scanner_enabled'] != 'false',
+      scannerSoundEnabled:
+          values['scanner_sound_enabled'] != 'false',
     );
   }
 
@@ -1899,6 +1908,12 @@ class AppDatabase {
     required String businessName,
     required String activityType,
     required String currency,
+    double uiScale = 1,
+    double fontScale = 1,
+    String invoiceColorHex = '0DB28E',
+    String invoicePaper = 'a4',
+    bool saleScannerEnabled = true,
+    bool scannerSoundEnabled = true,
   }) async {
     final values = <String, String>{
       'business_name': businessName.trim().isEmpty
@@ -1906,6 +1921,15 @@ class AppDatabase {
           : businessName.trim(),
       'activity_type': activityType,
       'currency': currency,
+      'ui_scale': uiScale.toStringAsFixed(2),
+      'font_scale': fontScale.toStringAsFixed(2),
+      'invoice_color_hex':
+          invoiceColorHex.replaceAll('#', '').toUpperCase(),
+      'invoice_paper': invoicePaper,
+      'sale_scanner_enabled':
+          saleScannerEnabled.toString(),
+      'scanner_sound_enabled':
+          scannerSoundEnabled.toString(),
     };
 
     for (final entry in values.entries) {
