@@ -241,11 +241,15 @@ class _TreeBranch extends StatelessWidget {
               ),
             ],
           ),
-          child: Theme(
-            data: Theme.of(context).copyWith(
-              dividerColor: Colors.transparent,
-            ),
-            child: ExpansionTile(
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(24),
+            clipBehavior: Clip.antiAlias,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+              ),
+              child: ExpansionTile(
               initiallyExpanded: true,
               tilePadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -333,6 +337,7 @@ class _TreeBranch extends StatelessWidget {
                     );
                   }),
               ],
+              ),
             ),
           ),
         ),
@@ -367,20 +372,24 @@ class _AccountNode extends StatelessWidget {
   Widget build(BuildContext context) {
     final positive = account.balance >= 0;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
           width: 32,
-          child: Column(
+          height: 72,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Expanded(
-                child: Container(
-                  width: 2,
-                  color: isLast
-                      ? Colors.transparent
-                      : AppColors.border,
+              if (!isLast)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 2,
+                      color: AppColors.border,
+                    ),
+                  ),
                 ),
-              ),
               Container(
                 width: 11,
                 height: 11,
@@ -397,14 +406,6 @@ class _AccountNode extends StatelessWidget {
                       blurRadius: 8,
                     ),
                   ],
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  width: 2,
-                  color: isLast
-                      ? Colors.transparent
-                      : AppColors.border,
                 ),
               ),
             ],
