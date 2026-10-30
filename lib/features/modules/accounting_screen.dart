@@ -7,7 +7,12 @@ import 'account_tree_view.dart';
 import 'manual_journal_screen.dart';
 
 class AccountingScreen extends StatefulWidget {
-  const AccountingScreen({super.key});
+  const AccountingScreen({
+    super.key,
+    this.initialTab = 0,
+  });
+
+  final int initialTab;
 
   @override
   State<AccountingScreen> createState() => _AccountingScreenState();
@@ -21,7 +26,11 @@ class _AccountingScreenState extends State<AccountingScreen>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 1),
+    );
     tabController.addListener(_handleTabChanged);
     _reload();
   }
