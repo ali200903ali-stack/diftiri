@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'invoice_editor_screen.dart';
 import 'sales_screen.dart';
 
@@ -49,8 +50,11 @@ class _SalesInvoicesScreenState extends State<SalesInvoicesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('فواتير المبيعات'),
+      appBar: DiftiriAppBar(
+        title: 'فواتير المبيعات',
+        subtitle: 'إنشاء، مراجعة، تعديل وطباعة فواتير البيع',
+        icon: Icons.receipt_long_rounded,
+        tone: DiftiriTone.navy,
         actions: [
           IconButton(
             tooltip: 'نقطة البيع',
