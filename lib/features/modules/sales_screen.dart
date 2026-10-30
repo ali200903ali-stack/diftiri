@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_ui_preferences.dart';
+import 'barcode_scanner_screen.dart';
 import 'sales_history_screen.dart';
 import 'restaurant_tables_screen.dart';
 
@@ -205,6 +207,34 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
+  Future<bool> _addBarcode(String code) async {
+    ProductRecord? matched;
+    for (final product in products) {
+      if (product.sku.trim() == code.trim()) {
+        matched = product;
+        break;
+      }
+    }
+
+    if (matched == null) {
+      return false;
+    }
+
+    add(matched);
+    return true;
+  }
+
+  Future<void> _openBarcodeScanner() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => BarcodeScannerScreen(
+          title: 'ماسح الكاشير',
+          onBarcode: _addBarcode,
+        ),
+      ),
+    );
+  }
+
   Future<void> _showMobileCart() async {
     if (quantities.isEmpty) return;
 
@@ -304,19 +334,43 @@ class _SalesScreenState extends State<SalesScreen> {
             desktop ? 20 : 14,
             8,
           ),
-          child: TextField(
-            key: const Key('sales-search'),
-            controller: searchController,
-            onChanged: (value) {
-              setState(() {
-                query = value;
-              });
-            },
-            textInputAction: TextInputAction.search,
-            decoration: const InputDecoration(
-              hintText: 'ابحث عن صنف أو باركود',
-              prefixIcon: Icon(Icons.search_rounded),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('sales-search'),
+                  controller: searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      query = value;
+                    });
+                  },
+                  textInputAction: TextInputAction.search,
+                  decoration: const InputDecoration(
+                    hintText: 'ابحث عن صنف أو باركود',
+                    prefixIcon: Icon(Icons.search_rounded),
+                  ),
+                ),
+              ),
+              if (AppUiPreferences.instance.saleScannerEnabled) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 54,
+                  height: 54,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      backgroundColor: AppColors.navy,
+                    ),
+                    onPressed: _openBarcodeScanner,
+                    child: const Icon(
+                      Icons.qr_code_scanner_rounded,
+                      size: 27,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Expanded(
