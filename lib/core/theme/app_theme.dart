@@ -31,6 +31,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.canvas,
+      fontFamily: 'Cairo',
       fontFamilyFallback: const [
         'Al-Jazeera Arabic',
         'Cairo',
