@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'barcode_scanner_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -370,8 +371,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('المخزون'),
+      appBar: DiftiriAppBar(
+        title: 'المخزون',
+        subtitle: 'الأصناف والكميات والباركود',
+        icon: Icons.inventory_2_rounded,
+        tone: DiftiriTone.mint,
         actions: [
           IconButton(
             tooltip: 'إضافة صنف',
