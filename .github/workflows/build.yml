@@ -27,7 +27,7 @@ jobs:
           from pathlib import Path
           import re
           html = Path('/tmp/index.html').read_text(encoding='utf-8')
-          scripts = re.findall(r'<script>([\\s\\S]*?)</script>', html)
+          scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
           Path('/tmp/diftiri-app.js').write_text('\n'.join(scripts), encoding='utf-8')
           assert '<html' in html.lower()
           assert scripts, 'No inline application script found'
