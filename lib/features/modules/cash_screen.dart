@@ -261,18 +261,15 @@ class _CashMovementCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: incoming
-                ? const Color(0xFFE8F8F4)
-                : const Color(0xFFFFECEC),
-            child: Icon(
-              incoming
-                  ? Icons.south_west_rounded
-                  : Icons.north_east_rounded,
-              color: incoming
-                  ? AppColors.emeraldDark
-                  : Colors.red.shade700,
-            ),
+          DiftiriIconBox(
+            icon: incoming
+                ? Icons.south_west_rounded
+                : Icons.north_east_rounded,
+            tone: incoming
+                ? DiftiriTone.emerald
+                : DiftiriTone.navy,
+            size: 46,
+            iconSize: 23,
           ),
           const SizedBox(width: 11),
           Expanded(
