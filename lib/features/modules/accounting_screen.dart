@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'account_tree_view.dart';
 import 'manual_journal_screen.dart';
 
 class AccountingScreen extends StatefulWidget {
@@ -11,13 +12,31 @@ class AccountingScreen extends StatefulWidget {
   State<AccountingScreen> createState() => _AccountingScreenState();
 }
 
-class _AccountingScreenState extends State<AccountingScreen> {
+class _AccountingScreenState extends State<AccountingScreen>
+    with SingleTickerProviderStateMixin {
   late Future<List<JournalLineRecord>> future;
+  late TabController tabController;
 
   @override
   void initState() {
     super.initState();
+    tabController = TabController(length: 2, vsync: this);
+    tabController.addListener(_handleTabChanged);
     _reload();
+  }
+
+  @override
+  void dispose() {
+    tabController
+      ..removeListener(_handleTabChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleTabChanged() {
+    if (!tabController.indexIsChanging && mounted) {
+      setState(() {});
+    }
   }
 
   void _reload() {
@@ -30,48 +49,77 @@ class _AccountingScreenState extends State<AccountingScreen> {
         builder: (_) => const ManualJournalScreen(),
       ),
     );
-    if (changed == true && mounted) setState(_reload);
+    if (changed == true && mounted) {
+      setState(_reload);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الحسابات والقيود')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _newJournal,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('قيد جديد'),
+      appBar: AppBar(
+        title: const Text('الحسابات والقيود'),
+        bottom: TabBar(
+          controller: tabController,
+          indicatorSize: TabBarIndicatorSize.tab,
+          tabs: const [
+            Tab(
+              icon: Icon(Icons.account_tree_rounded),
+              text: 'شجرة الحسابات',
+            ),
+            Tab(
+              icon: Icon(Icons.menu_book_rounded),
+              text: 'القيود اليومية',
+            ),
+          ],
+        ),
       ),
-      body: FutureBuilder<List<JournalLineRecord>>(
-        future: future,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      floatingActionButton: tabController.index == 1
+          ? FloatingActionButton.extended(
+              onPressed: _newJournal,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('قيد جديد'),
+            )
+          : null,
+      body: TabBarView(
+        controller: tabController,
+        children: [
+          const AccountTreeView(),
+          FutureBuilder<List<JournalLineRecord>>(
+            future: future,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-          final rows = snapshot.data!;
-          if (rows.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'لا توجد قيود بعد. ابدأ بقيد بسيط أو سجّل عملية بيع أو شراء.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
+              final rows = snapshot.data!;
+              if (rows.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'لا توجد قيود بعد. ابدأ بقيد بسيط أو سجّل عملية بيع أو شراء.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
 
-          return ListView.separated(
-            key: const Key('journal-lines-list'),
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 90),
-            itemCount: rows.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              return _JournalLineCard(line: rows[index]);
+              return ListView.separated(
+                key: const Key('journal-lines-list'),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 90),
+                itemCount: rows.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  return _JournalLineCard(line: rows[index]);
+                },
+              );
             },
-          );
-        },
+          ),
+        ],
       ),
     );
   }
