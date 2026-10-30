@@ -550,26 +550,6 @@ class _ModuleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = switch (module.tone) {
-      _ModuleTone.navy => const [
-          Color(0xFF174F78),
-          AppColors.navyDark,
-        ],
-      _ModuleTone.emerald => const [
-          Color(0xFF13C29C),
-          Color(0xFF07836A),
-        ],
-      _ModuleTone.mint => const [
-          Color(0xFFF3FFFC),
-          Color(0xFFDDF8F1),
-        ],
-    };
-
-    final light =
-        module.tone == _ModuleTone.mint;
-    final iconColor = light
-        ? AppColors.emeraldDark
-        : Colors.white;
     final width =
         MediaQuery.sizeOf(context).width;
     final iconBox = width < 350 ? 76.0 : 92.0;
