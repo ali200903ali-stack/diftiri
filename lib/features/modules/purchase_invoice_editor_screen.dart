@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'invoice_document_screen.dart';
 
 class PurchaseInvoiceEditorScreen extends StatefulWidget {
@@ -228,12 +229,13 @@ class _PurchaseInvoiceEditorScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          posted
-              ? 'تفاصيل فاتورة الشراء'
-              : 'تحرير فاتورة الشراء',
-        ),
+      appBar: DiftiriAppBar(
+        title: posted
+            ? 'تفاصيل فاتورة الشراء'
+            : 'تحرير فاتورة الشراء',
+        subtitle: 'المورد، الأصناف، التكلفة والطباعة',
+        icon: Icons.shopping_bag_rounded,
+        tone: DiftiriTone.emerald,
         actions: [
           if (posted)
             IconButton(
