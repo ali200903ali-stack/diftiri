@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 import 'account_tree_view.dart';
 import 'manual_journal_screen.dart';
 
@@ -57,11 +58,17 @@ class _AccountingScreenState extends State<AccountingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الحسابات والقيود'),
+      appBar: DiftiriAppBar(
+        title: 'الحسابات والقيود',
+        subtitle: 'شجرة حسابات، أرصدة وقيود يومية',
+        icon: Icons.calculate_rounded,
+        tone: DiftiriTone.emerald,
         bottom: TabBar(
           controller: tabController,
           indicatorSize: TabBarIndicatorSize.tab,
+          indicatorColor: AppColors.emerald,
+          labelColor: AppColors.emeraldDark,
+          unselectedLabelColor: AppColors.muted,
           tabs: const [
             Tab(
               icon: Icon(Icons.account_tree_rounded),
