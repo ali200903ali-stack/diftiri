@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/diftiri_ui.dart';
 
 class PurchaseHistoryScreen
     extends StatelessWidget {
@@ -10,8 +11,11 @@ class PurchaseHistoryScreen
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('سجل المشتريات'),
+      appBar: const DiftiriAppBar(
+        title: 'سجل المشتريات',
+        subtitle: 'جميع عمليات الشراء السابقة',
+        icon: Icons.history_rounded,
+        tone: DiftiriTone.emerald,
       ),
       body:
           FutureBuilder<List<PurchaseSummaryRecord>>(
