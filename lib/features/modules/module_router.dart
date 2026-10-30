@@ -45,8 +45,10 @@ abstract final class ModuleRouter {
         screen = const ExpensesScreen();
         break;
       case 'الحسابات':
+        screen = const AccountingScreen(initialTab: 0);
+        break;
       case 'القيود':
-        screen = const AccountingScreen();
+        screen = const AccountingScreen(initialTab: 1);
         break;
       case 'التقارير':
         screen = const ReportsScreen();
